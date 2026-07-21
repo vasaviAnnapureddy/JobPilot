@@ -1,0 +1,22 @@
+# ── NEVER push secrets ──────────────────────────
+.env
+*.env
+*secret*
+*credentials*
+
+# ── NEVER push personal data ────────────────────
+# Your CV has your phone/email/address — keep it private
+data/
+*.xlsx
+*.pdf
+*_session.json
+naukri_session.json
+
+# ── Build / cache junk ──────────────────────────
+logs/
+__pycache__/
+*.pyc
+.venv/
+venv/
+db.sqlite3
+.DS_Store
