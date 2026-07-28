@@ -1,0 +1,52 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Command Center{% endblock %}
+{% block body %}
+<h1>Command Center</h1>
+<p class="sub">The master control for your AI job agency.</p>
+
+<!-- START / STOP -->
+<div class="card" style="text-align:center;padding:30px;margin-bottom:22px;
+     background:{% if running %}#e6f4ec{% else %}#fdecea{% endif %}">
+  <div style="font-size:15px;color:var(--muted);margin-bottom:6px">Agent team is currently</div>
+  <div style="font-size:32px;font-weight:800;margin-bottom:16px;
+       color:{% if running %}var(--green){% else %}var(--red){% endif %}">
+    {% if running %}🟢 RUNNING{% else %}🔴 STOPPED{% endif %}
+  </div>
+  <form method="post" action="/toggle/">
+    {% csrf_token %}
+    {% if running %}
+      <button class="btn red big">■ STOP the agents</button>
+      <p class="muted" style="margin-top:10px">They will keep finding jobs daily until you stop them.</p>
+    {% else %}
+      <button class="btn green big">▶ START the agents</button>
+      <p class="muted" style="margin-top:10px">They will search, grade, and prepare jobs for you every day.</p>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Stats -->
+<div class="grid g4" style="margin-bottom:22px">
+  <div class="card stat"><div class="n">{{ total_jobs }}</div><div class="l">Jobs found</div></div>
+  <div class="card stat"><div class="n" style="color:var(--green)">{{ grade_a }}</div><div class="l">Grade A matches</div></div>
+  <div class="card stat"><div class="n" style="color:var(--amber)">{{ pending_edits }}</div><div class="l">Resume edits to review</div></div>
+  <div class="card stat"><div class="n" style="color:var(--blue)">{{ pending_drafts }}</div><div class="l">Outreach drafts to approve</div></div>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <h3 style="margin-bottom:10px">Last run</h3>
+    <p class="muted">When: {{ last_run_at }}</p>
+    <p class="muted">Result: {{ last_status }}</p>
+    <p style="margin-top:8px"><a href="/jobs/" class="btn primary">View today's jobs →</a></p>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:10px">Daily plan (3 lanes)</h3>
+    <div class="row-flex">
+      <span class="pill grey">{{ quota_auto }} auto-apply</span>
+      <span class="pill grey">{{ quota_pack }} apply-packs</span>
+      <span class="pill grey">{{ quota_out }} outreach emails</span>
+    </div>
+    <p class="muted" style="margin-top:10px">Nothing is submitted or sent without your approval.</p>
+  </div>
+</div>
+{% endblock %}

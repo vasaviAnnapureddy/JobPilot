@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Application Tracker{% endblock %}
+{% block body %}
+<h1>Application Tracker</h1>
+<p class="sub">Every application and which round you've reached. Update as you progress.</p>
+
+<table>
+  <thead><tr><th>Role</th><th>Status</th><th>Update round</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for a in apps %}
+    <tr>
+      <td><strong>{{ a.title }}</strong><br><span class="muted">{{ a.company }}</span></td>
+      <td>
+        {% if a.status == 'offer' %}<span class="pill a">🏆 {{ a.status }}</span>
+        {% elif a.status == 'interview' %}<span class="pill warn">📞 {{ a.status }}</span>
+        {% elif a.status == 'rejected' %}<span class="pill red">{{ a.status }}</span>
+        {% else %}<span class="pill grey">{{ a.status }}</span>{% endif %}
+      </td>
+      <td>
+        <form method="post" action="/tracker/update/" class="row-flex">
+          {% csrf_token %}
+          <input type="hidden" name="app_id" value="{{ a.id }}">
+          <select name="status" style="width:auto">
+            {% for s in stages %}<option value="{{ s|lower }}" {% if a.status == s|lower %}selected{% endif %}>{{ s }}</option>{% endfor %}
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="btn primary">Save</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/tracker/update/">
+          {% csrf_token %}
+          <input type="hidden" name="app_id" value="{{ a.id }}">
+          <input type="text" name="notes" value="{{ a.notes|default:'' }}" placeholder="e.g. asked SQL joins, revise">
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4" class="muted" style="text-align:center;padding:30px">
+      No applications logged yet. When you apply to jobs, they'll appear here to track round by round.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="muted" style="margin-top:14px">Rounds: Applied → Online Test → Tech Round 1 → Tech Round 2 → HR Round → Offer</p>
+{% endblock %}

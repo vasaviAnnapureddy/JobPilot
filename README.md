@@ -130,10 +130,10 @@ See [`SETUP.md`](SETUP.md) for full steps. In short:
 - [x] Batched grading + LLM fallback chain
 - [x] RAG: resume embedding + retrieval feeding evidence into grading
 - [x] Daily email digest
-- [ ] Django dashboard: Command Center, Today's Jobs, Application Tracker
-- [ ] Resume Studio: ATS scoring + human-approved edits
-- [ ] Three apply lanes: auto-apply, apply-packs, researched outreach
-- [ ] Gmail tracker, weekly intelligence report, interview-prep agent
+- [x] Tailor, Applier, Outreach, Tracker agents (all human-in-the-loop)
+- [x] Django dashboard: Command Center (START/STOP), Today's Jobs, Application Tracker, Outreach Book, Resume Studio
+- [ ] Live auto-submit + auto-send (currently prepared and approval-gated by design)
+- [ ] Weekly intelligence report, interview-prep agent
 - [ ] Deploy to Oracle Cloud free tier (fully laptop-independent)
 
 ---

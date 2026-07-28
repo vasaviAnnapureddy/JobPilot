@@ -1,0 +1,38 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Resume Studio{% endblock %}
+{% block body %}
+<h1>Resume Studio</h1>
+<p class="sub">The agent suggests small keyword edits. You decide — your resume is never changed without your approval.</p>
+
+<h3 style="margin:8px 0 12px">⏳ Suggestions awaiting your decision ({{ pending|length }})</h3>
+{% for e in pending %}
+  <div class="card" style="margin-bottom:12px">
+    <div class="row-flex" style="justify-content:space-between">
+      <div style="flex:1">
+        <div>{{ e.suggestion }}</div>
+        <div class="muted" style="margin-top:4px">Current ATS keyword match for this job: {{ e.ats_before }}%</div>
+      </div>
+      <form method="post" action="/resume/decide/" class="row-flex">
+        {% csrf_token %}
+        <input type="hidden" name="edit_id" value="{{ e.id }}">
+        <button class="btn green" name="decision" value="approve">✔ Approve</button>
+        <button class="btn ghost" name="decision" value="reject">✕ Reject</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <div class="card muted" style="text-align:center;padding:24px">
+    No pending suggestions. Run the agent to generate resume edit ideas for your Grade A/B jobs.
+  </div>
+{% endfor %}
+
+{% if decided %}
+  <h3 style="margin:24px 0 12px">Already decided ({{ decided|length }})</h3>
+  {% for e in decided %}
+    <div class="card" style="margin-bottom:8px" class="row-flex">
+      {% if e.approved %}<span class="pill a">✔ approved</span>{% else %}<span class="pill grey">✕ rejected</span>{% endif %}
+      <span style="margin-left:8px">{{ e.suggestion }}</span>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

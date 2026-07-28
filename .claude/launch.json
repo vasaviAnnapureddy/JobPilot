@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jobpilot-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["E:/DataSciiecne/JobPilot/web/manage.py", "runserver", "8000", "--noreload"],
+      "port": 8000
+    }
+  ]
+}

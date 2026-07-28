@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Outreach Book{% endblock %}
+{% block body %}
+<h1>Outreach Book</h1>
+<p class="sub">HR emails the agent drafted for you. Nothing is sent until you approve it.</p>
+
+{% for r in rows %}
+  <div class="card" style="margin-bottom:14px">
+    <div class="row-flex" style="justify-content:space-between">
+      <div><strong>{{ r.company }}</strong> · <span class="muted">{{ r.contact_role }}</span></div>
+      {% if r.approved_by_me %}<span class="pill a">✔ approved</span>
+      {% else %}<span class="pill warn">⏳ awaiting your approval</span>{% endif %}
+    </div>
+    <div style="margin-top:10px"><strong>{{ r.email_subject }}</strong></div>
+    <div class="muted" style="margin-top:6px;white-space:pre-wrap">{{ r.email_body }}</div>
+    {% if r.replied %}<div style="margin-top:8px"><span class="pill b">💬 replied</span></div>{% endif %}
+  </div>
+{% empty %}
+  <div class="card muted" style="text-align:center;padding:30px">
+    No outreach drafts yet. When Grade A jobs land in the outreach lane, the agent drafts personalized emails here for your approval.
+  </div>
+{% endfor %}
+{% endblock %}

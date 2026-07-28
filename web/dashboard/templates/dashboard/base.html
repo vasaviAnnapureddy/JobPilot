@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot — {% block title %}Dashboard{% endblock %}</title>
+  <style>
+    :root{
+      --navy:#1a237e; --blue:#4a86e8; --green:#1a764d; --amber:#b7791f;
+      --red:#c0392b; --bg:#f4f6fb; --card:#fff; --ink:#1a1a2e; --muted:#6b7280;
+      --line:#e4e8f0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);
+         color:var(--ink);line-height:1.5}
+    a{text-decoration:none;color:inherit}
+    .layout{display:flex;min-height:100vh}
+    /* Sidebar */
+    .side{width:230px;background:linear-gradient(180deg,#1a237e,#283593);color:#fff;
+          padding:22px 0;position:sticky;top:0;height:100vh;flex-shrink:0}
+    .brand{font-size:22px;font-weight:800;padding:0 22px 6px;letter-spacing:.5px}
+    .brand small{display:block;font-size:11px;font-weight:400;color:#b9c4f0;letter-spacing:0}
+    .nav{margin-top:20px}
+    .nav a{display:flex;align-items:center;gap:10px;padding:12px 22px;color:#c5ceef;
+           font-size:14px;font-weight:500;border-left:3px solid transparent}
+    .nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+    .nav a.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:#4a86e8}
+    .nav .ico{width:20px;text-align:center}
+    /* Main */
+    .main{flex:1;padding:30px 38px;max-width:1200px}
+    h1{font-size:26px;margin-bottom:4px;color:var(--navy)}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+    /* Cards */
+    .grid{display:grid;gap:16px}
+    .g4{grid-template-columns:repeat(4,1fr)}
+    .g3{grid-template-columns:repeat(3,1fr)}
+    .g2{grid-template-columns:repeat(2,1fr)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+    .stat .n{font-size:30px;font-weight:800;color:var(--navy)}
+    .stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+    .pill.a{background:#e6f4ec;color:var(--green)}
+    .pill.b{background:#e8f0fe;color:var(--blue)}
+    .pill.warn{background:#fff3cd;color:var(--amber)}
+    .pill.red{background:#fdecea;color:var(--red)}
+    .pill.grey{background:#eef0f4;color:#555}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;
+          border:1px solid var(--line)}
+    th{background:#f7f9fd;text-align:left;padding:11px 14px;font-size:12px;color:var(--muted);
+       text-transform:uppercase;letter-spacing:.3px}
+    td{padding:12px 14px;border-top:1px solid var(--line);font-size:14px;vertical-align:top}
+    .btn{display:inline-block;padding:9px 18px;border-radius:8px;font-weight:600;font-size:14px;
+         border:none;cursor:pointer}
+    .btn.primary{background:var(--blue);color:#fff}
+    .btn.green{background:var(--green);color:#fff}
+    .btn.red{background:var(--red);color:#fff}
+    .btn.ghost{background:#eef1f7;color:var(--ink)}
+    .btn.big{padding:16px 40px;font-size:17px;border-radius:12px}
+    .filters a{padding:6px 14px;border-radius:20px;background:#eef1f7;font-size:13px;
+               margin-right:6px;font-weight:600}
+    .filters a.active{background:var(--navy);color:#fff}
+    input[type=text],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);
+         border-radius:8px;font-size:14px;font-family:inherit}
+    .muted{color:var(--muted);font-size:13px}
+    .row-flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">🚀 JobPilot<small>your AI job agency</small></div>
+    <nav class="nav">
+      <a href="/" class="{% if page == 'home' %}active{% endif %}"><span class="ico">🎛️</span> Command Center</a>
+      <a href="/jobs/" class="{% if page == 'jobs' %}active{% endif %}"><span class="ico">📋</span> Today's Jobs</a>
+      <a href="/tracker/" class="{% if page == 'tracker' %}active{% endif %}"><span class="ico">🏁</span> Application Tracker</a>
+      <a href="/outreach/" class="{% if page == 'outreach' %}active{% endif %}"><span class="ico">📧</span> Outreach Book</a>
+      <a href="/resume/" class="{% if page == 'resume' %}active{% endif %}"><span class="ico">📄</span> Resume Studio</a>
+    </nav>
+  </aside>
+  <main class="main">
+    {% block body %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>
