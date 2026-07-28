@@ -6,16 +6,22 @@ so if we ever change databases, only this file changes.
 (That's the 10-year design.)
 """
 
+import time
 from datetime import datetime
 from core import config
 
 _client = None
 
+# Errors that mean "the connection blipped" — safe to retry
+_TRANSIENT = ("Server disconnected", "getaddrinfo failed", "RemoteProtocolError",
+              "ConnectError", "Connection reset", "timed out", "ReadError",
+              "Temporary failure")
 
-def get_client():
-    """Single shared Supabase client."""
+
+def get_client(force_new=False):
+    """Single shared Supabase client. force_new rebuilds it after a bad blip."""
     global _client
-    if _client is None:
+    if _client is None or force_new:
         if not config.DB_READY:
             raise RuntimeError(
                 "Supabase not configured. Fill SUPABASE_URL and SUPABASE_KEY "
@@ -26,18 +32,43 @@ def get_client():
     return _client
 
 
+def with_retry(fn, *, tries=4, base_delay=1.5):
+    """
+    Run a database operation, retrying on transient connection blips.
+    Rebuilds the client between tries so a dropped connection recovers.
+    This is what stops a momentary Supabase hiccup from crashing a run.
+    """
+    last = None
+    for attempt in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            msg = str(e)
+            last = e
+            if any(t in msg for t in _TRANSIENT) and attempt < tries - 1:
+                time.sleep(base_delay * (attempt + 1))
+                try:
+                    get_client(force_new=True)   # rebuild the connection
+                except Exception:
+                    pass
+                continue
+            raise
+    raise last
+
+
 # ────────────────────────────────────────────────
 # AGENT STATE — the START/STOP switch
 # ────────────────────────────────────────────────
 def get_state(key, default=""):
-    res = get_client().table("agent_state").select("value").eq("key", key).execute()
+    res = with_retry(lambda:
+        get_client().table("agent_state").select("value").eq("key", key).execute())
     return res.data[0]["value"] if res.data else default
 
 
 def set_state(key, value):
-    get_client().table("agent_state").upsert(
+    with_retry(lambda: get_client().table("agent_state").upsert(
         {"key": key, "value": str(value), "updated_at": datetime.now().isoformat()}
-    ).execute()
+    ).execute())
 
 
 def is_running():
@@ -61,10 +92,10 @@ def insert_jobs(job_dicts):
 
 
 def get_ungraded_jobs(limit=200):
-    res = (get_client().table("jobs")
+    res = with_retry(lambda: (get_client().table("jobs")
            .select("id,title,company,location,description")
            .is_("grade", "null")
-           .limit(limit).execute())
+           .limit(limit).execute()))
     return res.data or []
 
 

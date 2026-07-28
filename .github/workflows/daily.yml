@@ -1,0 +1,36 @@
+name: JobPilot Daily Run
+
+# Runs on GitHub's computers — your laptop can be OFF.
+on:
+  schedule:
+    # 03:00 UTC = 08:30 AM India time. (GitHub cron can be a few minutes late
+    # under load — it is not exact to the second, but it runs every day.)
+    - cron: "0 3 * * *"
+  workflow_dispatch:   # also lets you run it manually from the Actions tab
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run JobPilot daily cycle
+        env:
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2:    ${{ secrets.GEMINI_API_KEY_2 }}
+          GROQ_API_KEY:        ${{ secrets.GROQ_API_KEY }}
+          GMAIL_EMAIL:         ${{ secrets.GMAIL_EMAIL }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python run_daily.py
