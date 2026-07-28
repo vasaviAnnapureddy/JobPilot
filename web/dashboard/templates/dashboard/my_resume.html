@@ -1,0 +1,28 @@
+{% extends "dashboard/base.html" %}
+{% block title %}My Resume{% endblock %}
+{% block body %}
+<h1>My Resume</h1>
+<p class="sub">Paste your resume here. The AI uses it to match jobs and coach you — via RAG, grounded in your real experience.</p>
+
+{% if saved %}
+  <div class="card" style="background:#e6f4ec;border-left:4px solid var(--green);margin-bottom:16px">
+    ✅ Saved and re-indexed. Your job matching + interview coaching now use this resume.
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="muted" style="margin-bottom:8px">Current length: {{ chars }} characters</div>
+    <textarea name="resume" rows="22" style="font-family:Consolas,monospace;font-size:13px">{{ current }}</textarea>
+    <div style="margin-top:12px">
+      <button class="btn green">💾 Save resume &amp; re-index</button>
+    </div>
+  </form>
+</div>
+
+<p class="muted" style="margin-top:12px">
+  Tip: paste it as plain text or markdown. After saving, the Judge grades jobs against this exact resume,
+  and the Interview Coach cites these projects.
+</p>
+{% endblock %}

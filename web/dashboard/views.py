@@ -165,6 +165,43 @@ def decide_edit(request):
     return redirect("resume")
 
 
+# ── My Resume (upload / paste) ───────────────────────
+def my_resume(request):
+    from core import config, rag
+    cv_path = config.RESUMES_DIR / "cv_master.md"
+    saved = False
+    if request.method == "POST":
+        text = request.POST.get("resume", "").strip()
+        if text:
+            cv_path.parent.mkdir(parents=True, exist_ok=True)
+            cv_path.write_text(text, encoding="utf-8")
+            try:
+                rag.build_index(force=True)   # re-embed so matching uses the new resume
+            except Exception:
+                pass
+            saved = True
+    current = cv_path.read_text(encoding="utf-8") if cv_path.exists() else ""
+    return render(request, "dashboard/my_resume.html",
+                  {"current": current, "saved": saved, "chars": len(current)})
+
+
+# ── Mark a job as applied (feeds the Tracker) ────────
+@require_POST
+def mark_applied(request):
+    job_id = request.POST.get("job_id")
+    if job_id:
+        try:
+            # avoid duplicate application rows for the same job
+            existing = _client().table("applications").select("id").eq("job_id", job_id).execute()
+            if not existing.data:
+                _client().table("applications").insert({
+                    "job_id": int(job_id), "status": "applied", "method": "manual_pack",
+                }).execute()
+        except Exception:
+            pass
+    return redirect(request.META.get("HTTP_REFERER", "/jobs/"))
+
+
 # ── Interview Prep ───────────────────────────────────
 def interview_prep_page(request):
     from agents import interview_prep as ip

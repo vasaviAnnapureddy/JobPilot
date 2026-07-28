@@ -6,7 +6,11 @@
 
 ### 🔗 Links
 - **📂 Project (this repo):** https://github.com/vasaviAnnapureddy/JobPilot
-- **🖥️ Run the dashboard locally:** `cd web && python manage.py runserver 8010` → open http://localhost:8010
+- **🖥️ Run the dashboard locally** (two ways):
+  - **Easiest:** double-click **`START_WEBSITE.bat`** in the project folder, then open http://localhost:8010 in Chrome.
+  - **Terminal:** `cd web` then `python manage.py runserver 8010` → open http://localhost:8010
+    *(On Windows Command Prompt, switch drives first: `cd /d E:\DataSciiecne\JobPilot\web`.)*
+  - Requires: `pip install -r requirements.txt` once, and a `.env` file with your keys (see `.env.example`).
   *(A hosted live demo is on the roadmap — see the bottom of this file.)*
 
 **Status:** 8 agents built and working (Boss, Scout, Judge, Tailor, Applier, Outreach, Tracker, Interview-Prep + Referral Finder), an 8-page Django dashboard, RAG grading, and cloud scheduling. See the roadmap for what's next.

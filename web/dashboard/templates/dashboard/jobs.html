@@ -51,7 +51,14 @@
       <td class="muted">{{ j.match_reason|truncatechars:90 }}
         {% if j.missing_skills %}<br><span style="color:var(--amber)">Learn: {{ j.missing_skills|truncatechars:50 }}</span>{% endif %}
       </td>
-      <td>{% if j.apply_url %}<a href="{{ j.apply_url }}" target="_blank" class="btn primary">Apply →</a>{% endif %}</td>
+      <td>
+        {% if j.apply_url %}<a href="{{ j.apply_url }}" target="_blank" class="btn primary">Apply →</a><br>{% endif %}
+        <form method="post" action="/mark-applied/" style="margin-top:6px">
+          {% csrf_token %}
+          <input type="hidden" name="job_id" value="{{ j.id }}">
+          <button class="btn ghost" style="font-size:12px;padding:5px 10px">✓ I applied</button>
+        </form>
+      </td>
     </tr>
   {% empty %}
     <tr><td colspan="6" class="muted" style="text-align:center;padding:30px">
