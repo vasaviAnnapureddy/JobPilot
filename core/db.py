@@ -80,7 +80,12 @@ def save_grades(grade_rows):
 # ────────────────────────────────────────────────
 def log(agent, message, level="INFO"):
     ts = datetime.now().strftime("%d-%b %H:%M")
-    print(f"{ts} | {agent:<8} | {level:<5} | {message}")
+    line = f"{ts} | {agent:<8} | {level:<5} | {message}"
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        # Windows cp1252 console can't render some unicode — degrade gracefully
+        print(line.encode("ascii", "replace").decode("ascii"))
     try:
         get_client().table("agent_logs").insert(
             {"agent": agent, "level": level, "message": message}
