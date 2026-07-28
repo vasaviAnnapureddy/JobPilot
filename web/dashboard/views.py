@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """JobPilot dashboard views — read/write the Supabase data via core.db."""
 
+import json
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core import db
@@ -65,16 +67,37 @@ def toggle_switch(request):
 def jobs(request):
     grade = request.GET.get("grade", "A")
     lane  = request.GET.get("lane", "")
+    day   = request.GET.get("day", "")
     q = (_client().table("jobs")
-         .select("id,title,company,location,portal,score,grade,lane,apply_url,match_reason,missing_skills,scam_flags")
-         .order("score", desc=True).limit(100))
+         .select("id,title,company,location,portal,score,grade,lane,apply_url,match_reason,missing_skills,scam_flags,found_at")
+         .order("score", desc=True).limit(300))
     if grade:
         q = q.eq("grade", grade)
     if lane:
         q = q.eq("lane", lane)
     rows = q.execute().data or []
+
+    # add a short date (DD/MM) + remote flag to each row
+    for r in rows:
+        fa = str(r.get("found_at") or "")[:10]        # YYYY-MM-DD
+        r["day"] = fa
+        r["day_short"] = (fa[8:10] + "/" + fa[5:7]) if len(fa) == 10 else "—"
+        loc = (r.get("location") or "").lower()
+        r["remote"] = ("remote" in loc or "work from home" in loc or "wfh" in loc)
+
+    # date summary: how many jobs found each day (across all grades)
+    all_dates = (_client().table("jobs").select("found_at").limit(1000).execute().data or [])
+    from collections import Counter
+    by_day = Counter(str(d.get("found_at") or "")[:10] for d in all_dates if d.get("found_at"))
+    date_summary = [{"day": d, "day_short": d[8:10] + "/" + d[5:7], "count": c}
+                    for d, c in sorted(by_day.items(), reverse=True)]
+
+    if day:
+        rows = [r for r in rows if r["day"] == day]
+
     return render(request, "dashboard/jobs.html",
-                  {"jobs": rows, "grade": grade, "lane": lane, "count": len(rows)})
+                  {"jobs": rows, "grade": grade, "lane": lane, "day": day,
+                   "count": len(rows), "date_summary": date_summary})
 
 
 # ── Application Tracker ──────────────────────────────
@@ -205,6 +228,51 @@ def grow_page(request):
         "referral": referral, "entries": entries,
         "today_min": today_min, "streak": streak, "totals": totals,
     })
+
+
+# ── Video Mock Interview ─────────────────────────────
+DEFAULT_MOCK_QS = [
+    "Tell me about yourself and why you want this role.",
+    "Walk me through one project you're proud of, end to end.",
+    "Explain a machine learning concept you know well, simply.",
+    "Tell me about a time you faced a hard bug or problem. How did you solve it?",
+    "What are your strengths and one weakness you're working on?",
+    "Where do you see yourself in the AI/data field in 3 years?",
+]
+
+
+def mock_interview_page(request):
+    role = request.GET.get("role", "").strip()
+    questions = DEFAULT_MOCK_QS
+    if role:
+        # Try to generate role-specific questions; fall back to defaults
+        try:
+            from agents import interview_prep as ip
+            raw = ip.mock_questions(role)
+            lines = [l.strip(" -0123456789.") for l in raw.splitlines()
+                     if "?" in l]
+            if len(lines) >= 4:
+                questions = lines[:8]
+        except Exception:
+            pass
+    return render(request, "dashboard/mock.html",
+                  {"questions_json": json.dumps(questions), "role": role})
+
+
+@require_POST
+def mock_feedback(request):
+    """Receives a transcript, returns AI feedback as JSON."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+        question = body.get("question", "")
+        answer = body.get("answer", "")
+        if not answer.strip():
+            return JsonResponse({"feedback": "No speech was captured. Try speaking a bit louder, then stop."})
+        from agents import interview_prep as ip
+        fb = ip.answer_feedback(question, answer)
+        return JsonResponse({"feedback": fb})
+    except Exception as e:
+        return JsonResponse({"feedback": f"The AI was busy — try again. ({str(e)[:60]})"})
 
 
 def _add_practice(request):

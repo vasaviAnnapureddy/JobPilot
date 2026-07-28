@@ -2,40 +2,59 @@
 {% block title %}Today's Jobs{% endblock %}
 {% block body %}
 <h1>Today's Jobs</h1>
-<p class="sub">{{ count }} jobs — ranked by how well they match you.</p>
+<p class="sub">{{ count }} jobs shown — ranked by how well they match you.</p>
+
+<!-- Jobs found per date -->
+<div class="card" style="margin-bottom:16px;padding:12px 16px">
+  <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Jobs found by date</div>
+  <div class="filters">
+    <a href="/jobs/?grade={{ grade }}" class="{% if not day %}active{% endif %}">All dates</a>
+    {% for d in date_summary %}
+      <a href="/jobs/?grade={{ grade }}&day={{ d.day }}" class="{% if day == d.day %}active{% endif %}">{{ d.day_short }} · {{ d.count }}</a>
+    {% endfor %}
+  </div>
+</div>
 
 <div class="filters" style="margin-bottom:18px">
-  <a href="/jobs/?grade=A" class="{% if grade == 'A' %}active{% endif %}">⭐ Grade A</a>
+  <a href="/jobs/?grade=A" class="{% if grade == 'A' and not lane %}active{% endif %}">⭐ Grade A</a>
   <a href="/jobs/?grade=B" class="{% if grade == 'B' %}active{% endif %}">👍 Grade B</a>
-  <a href="/jobs/?grade=A&lane=apply_pack">📦 Apply-packs</a>
-  <a href="/jobs/?grade=A&lane=auto_apply">🤖 Auto-apply</a>
-  <a href="/jobs/?grade=A&lane=outreach">📧 Outreach</a>
+  <a href="/jobs/?grade=A&lane=apply_pack" class="{% if lane == 'apply_pack' %}active{% endif %}">📦 Apply-packs</a>
+  <a href="/jobs/?grade=A&lane=auto_apply" class="{% if lane == 'auto_apply' %}active{% endif %}">🤖 Auto-apply</a>
+  <a href="/jobs/?grade=A&lane=outreach" class="{% if lane == 'outreach' %}active{% endif %}">📧 Outreach</a>
 </div>
 
 <table>
-  <thead><tr><th>Score</th><th>Role</th><th>Why it matches you</th><th>Lane</th><th></th></tr></thead>
+  <thead><tr><th>Score</th><th>Role</th><th>Source</th><th>Location</th><th>Why it matches</th><th></th></tr></thead>
   <tbody>
   {% for j in jobs %}
     <tr>
-      <td><span class="pill {% if j.grade == 'A' %}a{% else %}b{% endif %}">{{ j.score }}</span></td>
+      <td>
+        <span class="pill {% if j.grade == 'A' %}a{% else %}b{% endif %}">{{ j.score }}</span><br>
+        <span class="muted" style="font-size:11px">{{ j.day_short }}</span>
+      </td>
       <td>
         <strong>{{ j.title }}</strong><br>
-        <span class="muted">{{ j.company }} · {{ j.location }} · {{ j.portal }}</span>
+        <span class="muted">{{ j.company }}</span>
         {% if j.scam_flags %}<br><span class="pill red">⚠ check: {{ j.scam_flags|truncatechars:50 }}</span>{% endif %}
       </td>
-      <td class="muted">{{ j.match_reason|truncatechars:120 }}
-        {% if j.missing_skills %}<br><span style="color:var(--amber)">Learn: {{ j.missing_skills|truncatechars:60 }}</span>{% endif %}
-      </td>
       <td>
-        {% if j.lane == 'apply_pack' %}<span class="pill b">📦 pack</span>
-        {% elif j.lane == 'auto_apply' %}<span class="pill a">🤖 auto</span>
-        {% elif j.lane == 'outreach' %}<span class="pill warn">📧 email</span>
-        {% else %}<span class="pill grey">—</span>{% endif %}
+        {% if j.portal == 'linkedin' %}<span class="pill b">LinkedIn</span>
+        {% elif j.portal == 'indeed' %}<span class="pill warn">Indeed</span>
+        {% elif j.portal == 'internshala' %}<span class="pill a">Internshala</span>
+        {% elif j.portal == 'naukri' %}<span class="pill grey">Naukri</span>
+        {% else %}<span class="pill grey">{{ j.portal }}</span>{% endif %}
+      </td>
+      <td class="muted" style="font-size:13px">
+        {{ j.location|default:'—' }}
+        {% if j.remote %}<br><span class="pill a">🌍 Remote</span>{% endif %}
+      </td>
+      <td class="muted">{{ j.match_reason|truncatechars:90 }}
+        {% if j.missing_skills %}<br><span style="color:var(--amber)">Learn: {{ j.missing_skills|truncatechars:50 }}</span>{% endif %}
       </td>
       <td>{% if j.apply_url %}<a href="{{ j.apply_url }}" target="_blank" class="btn primary">Apply →</a>{% endif %}</td>
     </tr>
   {% empty %}
-    <tr><td colspan="5" class="muted" style="text-align:center;padding:30px">
+    <tr><td colspan="6" class="muted" style="text-align:center;padding:30px">
       No jobs here yet. Press START on the Command Center and run the agent.</td></tr>
   {% endfor %}
   </tbody>

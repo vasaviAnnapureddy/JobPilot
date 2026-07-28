@@ -12,4 +12,6 @@ urlpatterns = [
     path("resume/decide/", views.decide_edit, name="decide_edit"),
     path("interview/", views.interview_prep_page, name="interview"),
     path("grow/", views.grow_page, name="grow"),
+    path("mock/", views.mock_interview_page, name="mock"),
+    path("mock/feedback/", views.mock_feedback, name="mock_feedback"),
 ]

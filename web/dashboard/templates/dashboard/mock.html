@@ -1,0 +1,111 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Video Mock Interview{% endblock %}
+{% block body %}
+<h1>Video Mock Interview</h1>
+<p class="sub">Practice on camera, speak your answer, get instant AI feedback on what you said and how.</p>
+
+{% csrf_token %}
+
+<div class="grid g2">
+  <!-- Camera + controls -->
+  <div class="card">
+    <video id="cam" autoplay muted playsinline style="width:100%;border-radius:10px;background:#111;aspect-ratio:16/9"></video>
+    <div class="row-flex" style="margin-top:12px">
+      <button id="startCam" class="btn ghost">🎥 Start camera</button>
+      <button id="recBtn" class="btn green" disabled>● Start answering</button>
+      <button id="stopBtn" class="btn red" disabled>■ Stop</button>
+    </div>
+    <p id="status" class="muted" style="margin-top:8px">Click "Start camera" (allow camera + mic when asked).</p>
+  </div>
+
+  <!-- Question + transcript -->
+  <div class="card">
+    <div class="muted" style="font-size:13px">Question <span id="qNum">1</span> of <span id="qTotal"></span></div>
+    <h3 id="question" style="margin:6px 0 14px;color:var(--navy)">—</h3>
+    <div class="row-flex" style="margin-bottom:12px">
+      <button id="prevQ" class="btn ghost">← Prev</button>
+      <button id="nextQ" class="btn ghost">Next →</button>
+    </div>
+    <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.3px">Your answer (live transcript)</div>
+    <div id="transcript" style="min-height:80px;padding:10px;border:1px solid var(--line);border-radius:8px;margin:6px 0 12px;font-size:14px">Your spoken words appear here…</div>
+    <button id="feedbackBtn" class="btn primary" disabled>Get AI feedback</button>
+  </div>
+</div>
+
+<!-- Feedback -->
+<div id="feedbackCard" class="card" style="margin-top:18px;border-left:4px solid var(--blue);display:none">
+  <h3 style="color:var(--navy)">Feedback</h3>
+  <div id="feedback" style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:8px"></div>
+</div>
+
+<p class="muted" style="margin-top:16px">
+  Tip: works best in Chrome. Speech-to-text runs in your browser (nothing recorded is uploaded — only the text of your answer is sent for feedback).
+</p>
+
+<script>
+const QUESTIONS = {{ questions_json|safe }};
+let qi = 0;
+const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+const el = id => document.getElementById(id);
+el('qTotal').textContent = QUESTIONS.length;
+function showQ(){ el('question').textContent = QUESTIONS[qi]; el('qNum').textContent = qi+1;
+  el('transcript').textContent = 'Your spoken words appear here…'; el('feedbackCard').style.display='none'; }
+showQ();
+el('prevQ').onclick = ()=>{ if(qi>0){qi--; showQ();} };
+el('nextQ').onclick = ()=>{ if(qi<QUESTIONS.length-1){qi++; showQ();} };
+
+// Camera
+let stream=null;
+el('startCam').onclick = async ()=>{
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    el('cam').srcObject = stream;
+    el('recBtn').disabled = false;
+    el('status').textContent = 'Camera on. Pick a question, then "Start answering".';
+  }catch(e){ el('status').textContent = 'Could not access camera/mic: '+e.message; }
+};
+
+// Speech-to-text
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, finalText='';
+if(SR){
+  rec = new SR(); rec.continuous=true; rec.interimResults=true; rec.lang='en-IN';
+  rec.onresult = ev=>{
+    let interim='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      const t=ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) finalText+=t+' '; else interim+=t;
+    }
+    el('transcript').textContent = (finalText+interim).trim() || '…';
+  };
+}
+el('recBtn').onclick = ()=>{
+  if(!rec){ el('status').textContent='Speech recognition not supported in this browser — use Chrome.'; return; }
+  finalText=''; el('transcript').textContent='Listening…';
+  rec.start(); el('recBtn').disabled=true; el('stopBtn').disabled=false;
+  el('feedbackBtn').disabled=true; el('status').textContent='🔴 Recording — answer out loud.';
+};
+el('stopBtn').onclick = ()=>{
+  if(rec) rec.stop();
+  el('recBtn').disabled=false; el('stopBtn').disabled=true;
+  el('feedbackBtn').disabled=false; el('status').textContent='Stopped. Click "Get AI feedback".';
+};
+
+// Feedback
+el('feedbackBtn').onclick = async ()=>{
+  const answer = el('transcript').textContent.trim();
+  el('feedbackBtn').textContent='Thinking…'; el('feedbackBtn').disabled=true;
+  try{
+    const r = await fetch('/mock/feedback/', {method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body: JSON.stringify({question: QUESTIONS[qi], answer})});
+    const d = await r.json();
+    el('feedback').textContent = d.feedback;
+    el('feedbackCard').style.display='block';
+    el('feedbackCard').scrollIntoView({behavior:'smooth'});
+  }catch(e){ el('feedback').textContent='Error: '+e.message; el('feedbackCard').style.display='block'; }
+  el('feedbackBtn').textContent='Get AI feedback'; el('feedbackBtn').disabled=false;
+};
+</script>
+{% endblock %}
