@@ -1,18 +1,23 @@
-# 🚀 JobPilot — Autonomous Multi-Agent Job-Search System
+# 🚀 JobPilot — Autonomous Multi-Agent Job-Search & Interview-Prep System
 
-> An AI agent team that searches job portals and grades every role against my profile — the foundation of a system designed to run daily on its own, with me in control of every decision that matters. (Resume-tailoring, outreach, and tracking agents are on the roadmap below.)
+> A team of AI agents that searches job portals, grades every role against my own resume using RAG, tailors applications, drafts recruiter outreach, and coaches me for interviews — running daily on its own, with me approving every decision that matters.
 
-Built with **LangGraph** (multi-agent orchestration), **Supabase/PostgreSQL** (data, with a pgvector column ready for RAG), and a **multi-provider LLM fallback chain** (Gemini → Groq) that makes the system resilient to free-tier rate limits.
+**Built with:** Python · LangGraph (multi-agent orchestration) · Supabase/PostgreSQL + pgvector (RAG) · Gemini + Groq (LLM fallback chain) · Django (web dashboard) · GitHub Actions (cloud scheduling)
 
-**Status:** 4 of the planned agents are built and working (Boss, Scout, Judge, Notifier). See the roadmap for what's next.
+### 🔗 Links
+- **📂 Project (this repo):** https://github.com/vasaviAnnapureddy/JobPilot
+- **🖥️ Run the dashboard locally:** `cd web && python manage.py runserver 8010` → open http://localhost:8010
+  *(A hosted live demo is on the roadmap — see the bottom of this file.)*
+
+**Status:** 8 agents built and working (Boss, Scout, Judge, Tailor, Applier, Outreach, Tracker, Interview-Prep + Referral Finder), an 8-page Django dashboard, RAG grading, and cloud scheduling. See the roadmap for what's next.
 
 ---
 
 ## Why I built this
 
-Job hunting as a fresher means repeating the same exhausting loop every single day: search five portals, read hundreds of listings, guess which ones fit, rewrite your resume, chase HR emails, and try to remember what you applied to. I wanted a system that does the repetitive 90% automatically but **never takes an irreversible action** — sending an email, submitting an application, editing my resume — **without my explicit approval.**
+Job hunting as a fresher means repeating the same exhausting loop every single day: search five portals, read hundreds of listings, guess which ones fit, rewrite your resume, chase HR emails, remember what you applied to, and somehow also prepare for interviews. I wanted one system that does the repetitive 90% automatically — but **never takes an irreversible action** (sending an email, submitting an application, editing my resume) **without my explicit approval** — and that also *coaches me* for the interviews it finds.
 
-That principle (**human-in-the-loop**) shaped the whole architecture.
+That principle — **human-in-the-loop** — shaped the whole architecture.
 
 ---
 
@@ -59,8 +64,9 @@ Each agent is a **node in a LangGraph state machine**. The Boss checks a master 
 - **Database:** Supabase (PostgreSQL) + pgvector for embeddings
 - **LLMs:** Google Gemini (`flash-lite`/`flash`) with Groq (`llama-3.3-70b`) fallback
 - **Scraping:** JobSpy (LinkedIn/Indeed), Playwright (Naukri), BeautifulSoup (Internshala)
-- **Web (in progress):** Django dashboard
-- **Deployment target:** Oracle Cloud always-free VM (24/7, laptop-independent)
+- **Web:** Django dashboard (8 pages)
+- **Scheduling:** GitHub Actions (runs daily in the cloud, laptop-independent)
+- **Deployment target:** hosted live demo on a free tier (roadmap)
 
 ---
 
@@ -68,13 +74,19 @@ Each agent is a **node in a LangGraph state machine**. The Boss checks a master 
 
 | Agent | Responsibility |
 |---|---|
-| **Boss** | Supervisor. Reads the START/STOP switch, coordinates the workflow, records each run's result. |
-| **Scout** | Searches LinkedIn, Indeed, Naukri, Internshala (more via adapters). Stores new jobs, skips duplicates. |
-| **Judge** | Grades each job A–F against my profile with evidence, flags experience mismatches and scam signals. |
-| **Tailor** *(building)* | Picks the right resume profile (Data Scientist / ML / Analyst / GenAI), proposes keyword edits for approval. |
-| **Applier** *(building)* | Auto-applies where safe; builds ready-to-submit apply-packs for the rest. |
-| **Outreach** *(building)* | Researches a company + HR contact, drafts a personalized email for my approval. |
-| **Tracker + Coach** *(building)* | Reads Gmail for recruiter replies, updates application status, surfaces skills to learn. |
+| **Boss** | Supervisor (LangGraph). Reads the START/STOP switch, coordinates the workflow, records each run. |
+| **Scout** | Searches LinkedIn, Indeed, Internshala (Naukri + more via adapters). Stores new jobs, skips duplicates. |
+| **Judge** | Grades each job A–F against my resume with RAG evidence; flags experience mismatches and scam signals. |
+| **Tailor** | ATS-scores each job and proposes keyword edits — stored for my approval, never overwriting my resume. |
+| **Applier** | Routes each Grade-A job into a lane (apply-pack / outreach / auto), preparing it — never submitting silently. |
+| **Outreach** | Drafts personalized HR emails grounded in my real experience, held for my approval before sending. |
+| **Tracker** | Reads Gmail (read-only) to detect interview invites and rejections and update application status. |
+| **Interview-Prep** | Company briefs, mock questions, answer feedback, vocabulary, and a concept coach (AI/DS/Stats). |
+| **Referral Finder** | Drafts referral-request messages + the exact LinkedIn search to find the right people. |
+
+## The dashboard (Django, 8 pages)
+
+Command Center (START/STOP + stats) · Today's Jobs (ranked, by date, by source, remote flag) · Application Tracker (round-by-round) · Outreach Book · Resume Studio (approve AI edits) · Interview Prep · Grow & Practice (referrals + LeetCode/study time tracker with streaks) · Video Mock Interview (camera + speech-to-text + AI feedback).
 
 ---
 
