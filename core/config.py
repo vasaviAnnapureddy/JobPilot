@@ -37,6 +37,46 @@ GROQ_MODEL    = "llama-3.3-70b-versatile"
 # ── Batching (the fix for quota crashes) ─────────────
 JUDGE_BATCH_SIZE = 12          # jobs graded per single AI call
 
+# ── Resume profiles ──────────────────────────────────
+# Each profile = a resume version + the job searches it should trigger.
+# Upload a resume and pick a profile → Scout searches THOSE jobs and the
+# Judge grades against THAT resume. "Data Science resume → data science jobs."
+RESUME_PROFILES = {
+    "data_science": {
+        "label": "Data Science",
+        "searches": [
+            "data scientist fresher", "junior data scientist",
+            "data science associate", "machine learning engineer entry level",
+            "data scientist python sql", "applied scientist fresher",
+        ],
+    },
+    "ai_ml": {
+        "label": "AI / ML Engineer",
+        "searches": [
+            "AI engineer fresher", "machine learning engineer entry level",
+            "generative AI engineer junior", "LLM engineer python fresher",
+            "deep learning engineer fresher", "AI ML fresher 2025",
+        ],
+    },
+    "data_analyst": {
+        "label": "Data Analyst",
+        "searches": [
+            "data analyst fresher", "data analyst python sql",
+            "business analyst fresher", "analytics associate fresher",
+            "power bi analyst fresher", "sql data analyst entry level",
+        ],
+    },
+    "genai": {
+        "label": "GenAI / LLM Engineer",
+        "searches": [
+            "generative AI engineer", "LLM engineer fresher",
+            "prompt engineer fresher", "AI engineer RAG langchain",
+            "NLP engineer junior", "genai developer fresher",
+        ],
+    },
+}
+DEFAULT_PROFILE = "ai_ml"
+
 # ── Portals / credentials ─────────────────────────────
 NAUKRI_EMAIL      = os.getenv("NAUKRI_EMAIL", "")
 NAUKRI_PASSWORD   = os.getenv("NAUKRI_PASSWORD", "")

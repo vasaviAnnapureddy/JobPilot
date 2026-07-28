@@ -1,0 +1,74 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Interview Prep{% endblock %}
+{% block body %}
+<h1>Interview Prep Coach</h1>
+<p class="sub">Ask about a company, practice questions, get feedback, polish your words.</p>
+
+{% if result %}
+  <div class="card" style="margin-bottom:20px;border-left:4px solid var(--blue)">
+    <h3 style="color:var(--navy);margin-bottom:8px">{{ heading }}</h3>
+    <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">{{ result }}</div>
+  </div>
+{% endif %}
+
+<div class="grid g2">
+  <!-- Company brief (your priority) -->
+  <div class="card">
+    <h3 style="margin-bottom:8px">🏢 Ask about a company</h3>
+    <p class="muted" style="margin-bottom:10px">What they build, why they'd need you, how your experience fits.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="brief">
+      <input type="text" name="company" placeholder="Company name (e.g. PwC)" style="margin-bottom:8px" required>
+      <input type="text" name="role" placeholder="Role (optional, e.g. AI Engineer)" style="margin-bottom:10px">
+      <button class="btn primary">Get company brief</button>
+    </form>
+  </div>
+
+  <!-- Mock questions -->
+  <div class="card">
+    <h3 style="margin-bottom:8px">❓ Mock interview questions</h3>
+    <p class="muted" style="margin-bottom:10px">Likely technical + HR questions for a role.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="mock">
+      <input type="text" name="role" placeholder="Role (e.g. Data Scientist)" style="margin-bottom:10px" required>
+      <button class="btn primary">Generate questions</button>
+    </form>
+  </div>
+
+  <!-- Answer feedback -->
+  <div class="card">
+    <h3 style="margin-bottom:8px">📝 Feedback on my answer</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="feedback">
+      <input type="text" name="q" placeholder="The question" style="margin-bottom:8px">
+      <textarea name="a" rows="3" placeholder="Type your practice answer here" style="margin-bottom:10px"></textarea>
+      <button class="btn primary">Rate my answer</button>
+    </form>
+  </div>
+
+  <!-- Vocabulary -->
+  <div class="card">
+    <h3 style="margin-bottom:8px">💬 Improve my words</h3>
+    <p class="muted" style="margin-bottom:10px">Make your phrasing sound confident and professional.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="vocab">
+      <textarea name="t" rows="3" placeholder="Paste what you plan to say" style="margin-bottom:10px"></textarea>
+      <button class="btn primary">Polish it</button>
+    </form>
+  </div>
+</div>
+
+{% if history %}
+  <h3 style="margin:24px 0 10px">Recent</h3>
+  {% for h in history %}
+    <div class="card" style="margin-bottom:6px;padding:10px 14px">
+      <span class="pill grey">{{ h.kind }}</span>
+      <span style="margin-left:6px">{{ h.company }}{{ h.role }}{{ h.question|truncatechars:50 }}</span>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

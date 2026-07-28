@@ -140,3 +140,41 @@ def decide_edit(request):
     if edit_id:
         _client().table("resume_edits").update({"approved": decision}).eq("id", edit_id).execute()
     return redirect("resume")
+
+
+# ── Interview Prep ───────────────────────────────────
+def interview_prep_page(request):
+    from agents import interview_prep as ip
+    result, heading = None, None
+    if request.method == "POST":
+        action = request.POST.get("action")
+        try:
+            if action == "brief":
+                company = request.POST.get("company", "").strip()
+                role = request.POST.get("role", "").strip()
+                heading = f"Company brief — {company}"
+                result = ip.company_brief(company, role) if company else "Enter a company name."
+            elif action == "mock":
+                role = request.POST.get("role", "").strip()
+                heading = f"Mock questions — {role}"
+                result = ip.mock_questions(role) if role else "Enter a role."
+            elif action == "feedback":
+                q = request.POST.get("q", "").strip()
+                a = request.POST.get("a", "").strip()
+                heading = "Feedback on your answer"
+                result = ip.answer_feedback(q, a) if a else "Paste your practice answer."
+            elif action == "vocab":
+                t = request.POST.get("t", "").strip()
+                heading = "Polished vocabulary"
+                result = ip.vocabulary(t) if t else "Paste some text."
+        except Exception as e:
+            result = f"The AI was busy — try again in a moment. ({str(e)[:80]})"
+    # recent history
+    try:
+        history = (_client().table("interview_prep")
+                   .select("kind,company,role,question,created_at")
+                   .order("id", desc=True).limit(8).execute().data or [])
+    except Exception:
+        history = []
+    return render(request, "dashboard/interview.html",
+                  {"result": result, "heading": heading, "history": history})

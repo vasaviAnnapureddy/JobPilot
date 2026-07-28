@@ -10,4 +10,5 @@ urlpatterns = [
     path("outreach/", views.outreach_book, name="outreach"),
     path("resume/", views.resume_studio, name="resume"),
     path("resume/decide/", views.decide_edit, name="decide_edit"),
+    path("interview/", views.interview_prep_page, name="interview"),
 ]
