@@ -1,8 +1,10 @@
 # 🚀 JobPilot — Autonomous Multi-Agent Job-Search System
 
-> An AI agent team that searches job portals, grades every role against my profile, tailors resumes, writes recruiter outreach, and tracks applications — designed to run daily on its own, with me in control of every decision that matters.
+> An AI agent team that searches job portals and grades every role against my profile — the foundation of a system designed to run daily on its own, with me in control of every decision that matters. (Resume-tailoring, outreach, and tracking agents are on the roadmap below.)
 
-Built with **LangGraph** (multi-agent orchestration), **Supabase/PostgreSQL + pgvector** (data + RAG), and a **multi-provider LLM fallback chain** (Gemini → Groq) that makes the system resilient to free-tier rate limits.
+Built with **LangGraph** (multi-agent orchestration), **Supabase/PostgreSQL** (data, with a pgvector column ready for RAG), and a **multi-provider LLM fallback chain** (Gemini → Groq) that makes the system resilient to free-tier rate limits.
+
+**Status:** 4 of the planned agents are built and working (Boss, Scout, Judge, Notifier). See the roadmap for what's next.
 
 ---
 
@@ -46,7 +48,7 @@ Each agent is a **node in a LangGraph state machine**. The Boss checks a master 
 | **Adapter pattern for portals** | Each job site is one self-contained function. Adding a new portal in the future = adding one file; the agents' logic never changes. |
 | **Human-in-the-loop (HITL)** | AI proposes resume edits and outreach emails, but nothing is sent or saved without explicit approval. My words, my decisions. |
 | **Single database access layer** | Every agent talks to the DB through one module, so the storage backend can be swapped without touching agent code. |
-| **RAG-based matching** (pgvector) | Job descriptions and resume chunks are embedded so matches are evidence-based ("matches your LifeLink Gemini project"), not keyword guesses. |
+| **RAG-based grading** (embeddings + retrieval) | The resume is chunked and embedded (Gemini `gemini-embedding-001`, 768-dim); for each job the description is embedded and the most semantically similar resume chunks are retrieved by cosine similarity and handed to the Judge as evidence — so grades cite real projects, not keyword guesses. *(pgvector column is in place to move similarity search into the database.)* |
 
 ---
 
@@ -126,6 +128,7 @@ See [`SETUP.md`](SETUP.md) for full steps. In short:
 
 - [x] Multi-agent core (Boss, Scout, Judge) on LangGraph
 - [x] Batched grading + LLM fallback chain
+- [x] RAG: resume embedding + retrieval feeding evidence into grading
 - [x] Daily email digest
 - [ ] Django dashboard: Command Center, Today's Jobs, Application Tracker
 - [ ] Resume Studio: ATS scoring + human-approved edits

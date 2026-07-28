@@ -13,7 +13,7 @@ job and grade with evidence. For now the profile brief is inline.
 import json
 from pathlib import Path
 
-from core import db, llm, config
+from core import db, llm, config, rag
 
 
 def _load_profile():
@@ -29,6 +29,9 @@ BATCH_PROMPT = """You are a strict career-match judge for this candidate:
 {profile}
 
 === JOBS TO GRADE (JSON array) ===
+Each job includes "resume_evidence": the parts of the candidate's ACTUAL
+resume most relevant to that job (retrieved by meaning). Use this evidence
+to justify the match — cite specific projects/skills from it in your reason.
 {jobs_json}
 
 GRADING RULES:
@@ -57,15 +60,19 @@ Reply with ONLY a JSON array, one object per job, same order:
 
 def _grade_batch(jobs, profile):
     """Grade one batch of jobs in a single AI call."""
-    jobs_json = json.dumps(
-        [{"id": j["id"],
-          "title": j["title"],
-          "company": j["company"],
-          "location": j.get("location", ""),
-          "description": (j.get("description") or "")[:1200]}
-         for j in jobs],
-        ensure_ascii=False,
-    )
+    entries = []
+    for j in jobs:
+        job_text = f"{j['title']} at {j['company']}. {(j.get('description') or '')[:800]}"
+        evidence = rag.retrieve(job_text, top_k=2)   # RAG: relevant resume parts
+        entries.append({
+            "id": j["id"],
+            "title": j["title"],
+            "company": j["company"],
+            "location": j.get("location", ""),
+            "description": (j.get("description") or "")[:1200],
+            "resume_evidence": " || ".join(e[:300] for e in evidence) or "(none retrieved)",
+        })
+    jobs_json = json.dumps(entries, ensure_ascii=False)
     prompt = BATCH_PROMPT.format(profile=profile, jobs_json=jobs_json)
     result = llm.ask_json(prompt, log_fn=lambda m: db.log("judge", m, "WARN"))
 
@@ -93,6 +100,8 @@ def run():
         return 0, 0
 
     profile = _load_profile()
+    n_chunks = rag.build_index()          # RAG: ensure resume is embedded (cached)
+    db.log("judge", f"RAG index ready — {n_chunks} resume chunks")
     total_graded, grade_a = 0, 0
     batch_size = config.JUDGE_BATCH_SIZE
 
