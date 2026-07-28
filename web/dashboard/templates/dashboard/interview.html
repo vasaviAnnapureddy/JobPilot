@@ -49,6 +49,18 @@
     </form>
   </div>
 
+  <!-- Concept coach -->
+  <div class="card" style="border-left:4px solid var(--green)">
+    <h3 style="margin-bottom:8px">📚 Learn any topic (AI / DS / Stats)</h3>
+    <p class="muted" style="margin-bottom:10px">Explains it simply + quizzes you. e.g. "RAG", "p-value", "XGBoost", "Big-O".</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="concept">
+      <input type="text" name="topic" placeholder="Topic (e.g. Transformers, A/B testing)" style="margin-bottom:10px" required>
+      <button class="btn green">Teach me</button>
+    </form>
+  </div>
+
   <!-- Vocabulary -->
   <div class="card">
     <h3 style="margin-bottom:8px">💬 Improve my words</h3>

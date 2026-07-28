@@ -80,6 +80,40 @@ Be kind but honest. Simple English."""
     return ans
 
 
+CONCEPT_TOPICS = {
+    "ai_ml":    ["Machine Learning basics", "Overfitting & regularization", "Bias-variance tradeoff",
+                 "Gradient descent", "Ensemble methods (Random Forest, XGBoost)", "Cross-validation"],
+    "deep_learning": ["Neural networks", "Backpropagation", "CNNs", "RNNs & LSTMs",
+                      "Transformers & attention", "Activation functions"],
+    "genai":    ["LLMs & tokens", "RAG", "Prompt engineering", "Fine-tuning vs RAG",
+                 "Embeddings & vector databases", "Hallucination & how to reduce it"],
+    "stats":    ["p-value & hypothesis testing", "Probability distributions", "Central Limit Theorem",
+                 "Correlation vs causation", "A/B testing", "Bayes theorem"],
+    "data":     ["SQL joins", "Normalization", "ETL pipelines", "Pandas operations",
+                 "Feature engineering", "Handling missing data"],
+    "coding":   ["Time & space complexity (Big-O)", "Arrays & hashing", "Two pointers",
+                 "Recursion", "Dynamic programming basics", "Trees & graphs"],
+}
+
+
+def concept_coach(topic):
+    """Teach any interview topic clearly + quiz the user on it."""
+    prompt = f"""You are teaching a fresher AI/ML engineer for interviews. Explain this topic
+clearly in simple English, then quiz her.
+
+TOPIC: {topic}
+
+Give:
+1. SIMPLE EXPLANATION — 4-6 lines, like explaining to a beginner, with a small real example.
+2. WHY INTERVIEWERS ASK IT — 1 line.
+3. 3 LIKELY INTERVIEW QUESTIONS on this topic (increasing difficulty).
+4. THE ANSWER to question 1 (so she can check herself).
+Use clear headings. Keep it under 320 words."""
+    ans = llm.ask(prompt, log_fn=lambda m: db.log("interview", m, "WARN"))
+    _save("concept_coach", "", topic, topic, ans)
+    return ans
+
+
 def vocabulary(text):
     prompt = f"""Improve the professional vocabulary and phrasing of this text a fresher would
 say in an interview. Keep her meaning, make it sound confident and polished, not fake.

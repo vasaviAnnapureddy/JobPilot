@@ -1,0 +1,87 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Grow & Practice{% endblock %}
+{% block body %}
+<h1>Grow &amp; Practice</h1>
+<p class="sub">Get referrals, and build the skills that actually get you hired — track it daily.</p>
+
+<!-- Practice streak stats -->
+<div class="grid g4" style="margin-bottom:20px">
+  <div class="card stat"><div class="n" style="color:var(--green)">🔥 {{ streak }}</div><div class="l">Day streak</div></div>
+  <div class="card stat"><div class="n">{{ today_min }}</div><div class="l">Minutes today</div></div>
+  <div class="card stat"><div class="n" style="color:var(--blue)">{{ totals.leetcode|default:0 }}</div><div class="l">LeetCode mins (total)</div></div>
+  <div class="card stat"><div class="n" style="color:var(--amber)">{{ totals.study|default:0 }}</div><div class="l">Study mins (total)</div></div>
+</div>
+
+<div class="grid g2">
+  <!-- Referral finder -->
+  <div class="card">
+    <h3 style="margin-bottom:6px">🤝 Referral Finder</h3>
+    <p class="muted" style="margin-bottom:10px">Drafts your message + gives the LinkedIn search to find people. (Referrals = the #1 way freshers get hired.)</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="referral">
+      <input type="text" name="company" placeholder="Company (e.g. PwC)" style="margin-bottom:8px" required>
+      <input type="text" name="role" placeholder="Role (e.g. AI Engineer)" style="margin-bottom:10px">
+      <button class="btn primary">Draft referral request</button>
+    </form>
+  </div>
+
+  <!-- Log practice -->
+  <div class="card">
+    <h3 style="margin-bottom:6px">✍️ Log today's practice</h3>
+    <p class="muted" style="margin-bottom:10px">LeetCode, study, or YouTube learning — track your time & topics.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="log">
+      <div class="row-flex" style="margin-bottom:8px">
+        <select name="kind" style="width:auto">
+          <option value="leetcode">💻 LeetCode</option>
+          <option value="study">📚 Study (AI/DS/Stats)</option>
+          <option value="youtube">▶️ YouTube learning</option>
+          <option value="project">🛠️ Project</option>
+        </select>
+        <input type="number" name="count" placeholder="# solved" style="width:90px">
+        <input type="number" name="minutes" placeholder="mins" style="width:80px" required>
+      </div>
+      <input type="text" name="topic" placeholder="Topic (e.g. Dynamic Programming)" style="margin-bottom:8px">
+      <input type="text" name="link" placeholder="Link (optional)" style="margin-bottom:10px">
+      <button class="btn green">Add to log</button>
+    </form>
+  </div>
+</div>
+
+{% if referral %}
+  <div class="card" style="margin-top:18px;border-left:4px solid var(--blue)">
+    <h3 style="color:var(--navy)">Referral draft — {{ referral.company }}</h3>
+    {% if referral.error %}<p class="muted">{{ referral.error }}</p>{% else %}
+    <p style="margin-top:8px"><strong>1. Connection note:</strong></p>
+    <div class="muted" style="white-space:pre-wrap">{{ referral.connect_note }}</div>
+    <p style="margin-top:10px"><strong>2. Referral message (after they accept):</strong></p>
+    <div class="muted" style="white-space:pre-wrap">{{ referral.referral_message }}</div>
+    {% if referral.tips %}<p style="margin-top:10px"><strong>Tips:</strong></p>
+      <ul style="margin-left:18px" class="muted">{% for t in referral.tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+    <p style="margin-top:12px"><a href="{{ referral.search_url }}" target="_blank" class="btn primary">🔎 Find people at {{ referral.company }} on LinkedIn →</a></p>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- Recent practice -->
+<h3 style="margin:22px 0 10px">Recent practice</h3>
+<table>
+  <thead><tr><th>Day</th><th>Type</th><th>Topic</th><th>Solved</th><th>Minutes</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td class="muted">{{ e.day }}</td>
+      <td><span class="pill grey">{{ e.kind }}</span></td>
+      <td>{{ e.topic|default:'—' }}</td>
+      <td>{{ e.count|default:0 }}</td>
+      <td>{{ e.minutes|default:0 }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="muted" style="text-align:center;padding:24px">
+      No practice logged yet. Log your first LeetCode session above — small daily reps beat cramming.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

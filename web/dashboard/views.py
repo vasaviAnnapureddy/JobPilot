@@ -167,6 +167,10 @@ def interview_prep_page(request):
                 t = request.POST.get("t", "").strip()
                 heading = "Polished vocabulary"
                 result = ip.vocabulary(t) if t else "Paste some text."
+            elif action == "concept":
+                topic = request.POST.get("topic", "").strip()
+                heading = f"Concept coach — {topic}"
+                result = ip.concept_coach(topic) if topic else "Enter a topic."
         except Exception as e:
             result = f"The AI was busy — try again in a moment. ({str(e)[:80]})"
     # recent history
@@ -178,3 +182,63 @@ def interview_prep_page(request):
         history = []
     return render(request, "dashboard/interview.html",
                   {"result": result, "heading": heading, "history": history})
+
+
+# ── Grow & Practice (referrals + coding/study tracker) ─
+def grow_page(request):
+    referral = None
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "referral":
+            from agents import referral_finder as rf
+            company = request.POST.get("company", "").strip()
+            role = request.POST.get("role", "").strip()
+            if company:
+                referral = rf.find_referral(company, role)
+        elif action == "log":
+            _add_practice(request)
+            return redirect("grow")
+
+    # practice stats
+    entries, today_min, streak, totals = _practice_stats()
+    return render(request, "dashboard/grow.html", {
+        "referral": referral, "entries": entries,
+        "today_min": today_min, "streak": streak, "totals": totals,
+    })
+
+
+def _add_practice(request):
+    try:
+        _client().table("practice_log").insert({
+            "kind":    request.POST.get("kind", "leetcode"),
+            "topic":   request.POST.get("topic", "")[:200],
+            "count":   int(request.POST.get("count") or 0),
+            "minutes": int(request.POST.get("minutes") or 0),
+            "link":    request.POST.get("link", "")[:500],
+            "notes":   request.POST.get("notes", "")[:500],
+        }).execute()
+    except Exception:
+        pass
+
+
+def _practice_stats():
+    from datetime import date, timedelta
+    try:
+        rows = (_client().table("practice_log")
+                .select("day,kind,topic,count,minutes,link")
+                .order("id", desc=True).limit(60).execute().data or [])
+    except Exception:
+        return [], 0, 0, {}
+    today = str(date.today())
+    today_min = sum(r.get("minutes", 0) for r in rows if str(r.get("day")) == today)
+    # streak: consecutive days with any entry
+    days = {str(r.get("day")) for r in rows}
+    streak, d = 0, date.today()
+    while str(d) in days:
+        streak += 1
+        d -= timedelta(days=1)
+    totals = {}
+    for r in rows:
+        k = r.get("kind", "other")
+        totals[k] = totals.get(k, 0) + r.get("minutes", 0)
+    return rows[:15], today_min, streak, totals
