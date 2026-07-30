@@ -50,29 +50,32 @@
   </div>
 
 <script>
-// Supabase publishable key — safe to be public (read-only, protected by RLS).
-const SUPABASE_URL = "https://mfvjmdgpmixgrktqwobr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_LUKrxQ2LyAfaaRekvmdbng_0F-zTO9m";
-
+// Reads a plain data file in this repo — no database, no keys, no setup.
+// Refresh it any time by running:  python export_public.py  (then commit)
+let ALL = [];               // all jobs from jobs.json
 let grade = "A", profile = "";
 let allProfiles = new Set();
 
-async function fetchJobs(){
+async function loadData(){
   const list = document.getElementById('list');
-  list.innerHTML = '<div class="load">Loading your jobs…</div>';
-  const url = `${SUPABASE_URL}/rest/v1/jobs?select=title,company,location,portal,score,grade,match_reason,apply_url,profile,found_at&grade=eq.${grade}&order=score.desc&limit=200`;
   try{
-    const r = await fetch(url, {headers:{apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY}});
+    const r = await fetch('./jobs.json?t=' + Date.now());
     if(!r.ok) throw new Error("HTTP "+r.status);
-    let jobs = await r.json();
-    jobs.forEach(j=>{ if(j.profile) allProfiles.add(j.profile); });
-    renderProfiles();
-    if(profile) jobs = jobs.filter(j=>(j.profile||"")===profile);
-    render(jobs);
+    const data = await r.json();
+    ALL = data.jobs || [];
+    ALL.forEach(j=>{ if(j.profile) allProfiles.add(j.profile); });
+    fetchJobs();
   }catch(e){
-    list.innerHTML = `<div class="load">Could not load jobs (${e.message}).<br>
-      Make sure the read policy is enabled in Supabase (see setup).</div>`;
+    list.innerHTML = `<div class="load">Could not load jobs.json (${e.message}).<br>
+      Run <code>python export_public.py</code> and commit, then open the GitHub Pages link.</div>`;
   }
+}
+
+function fetchJobs(){
+  renderProfiles();
+  let jobs = ALL.filter(j=>j.grade===grade);
+  if(profile) jobs = jobs.filter(j=>(j.profile||"")===profile);
+  render(jobs);
 }
 
 function renderProfiles(){
@@ -112,7 +115,7 @@ document.getElementById('gradeF').querySelectorAll('a').forEach(a=>a.onclick=()=
   a.classList.add('active'); grade=a.dataset.grade; fetchJobs();
 });
 
-fetchJobs();
+loadData();
 </script>
 </body>
 </html>
