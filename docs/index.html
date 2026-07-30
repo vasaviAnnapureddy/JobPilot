@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobPilot — Live Jobs</title>
+<style>
+  :root{--navy:#1a237e;--blue:#4a86e8;--green:#1a764d;--amber:#b7791f;--red:#c0392b;
+        --bg:#f4f6fb;--card:#fff;--ink:#1a1a2e;--muted:#6b7280;--line:#e4e8f0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .top{background:linear-gradient(135deg,#1a237e,#4a86e8);color:#fff;padding:26px 20px}
+  .wrap{max-width:1050px;margin:0 auto;padding:0 18px}
+  h1{font-size:24px} .sub{color:#c5d8ff;font-size:14px;margin-top:4px}
+  .main{max-width:1050px;margin:22px auto;padding:0 18px}
+  .filters{margin:14px 0}
+  .filters a{display:inline-block;padding:6px 14px;border-radius:20px;background:#eef1f7;font-size:13px;
+    margin:0 6px 6px 0;font-weight:600;cursor:pointer;color:var(--ink);text-decoration:none}
+  .filters a.active{background:var(--navy);color:#fff}
+  .job{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--green);
+    border-radius:10px;padding:14px 16px;margin:10px 0}
+  .job .row{display:flex;justify-content:space-between;gap:10px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700}
+  .a{background:#e6f4ec;color:var(--green)} .b{background:#e8f0fe;color:var(--blue)}
+  .src{background:#eef0f4;color:#555}
+  .muted{color:var(--muted);font-size:13px}
+  .btn{display:inline-block;margin-top:8px;background:var(--blue);color:#fff;padding:7px 15px;
+    border-radius:6px;text-decoration:none;font-size:13px;font-weight:600}
+  .load{text-align:center;color:var(--muted);padding:40px}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin:30px 0}
+</style>
+</head>
+<body>
+  <div class="top"><div class="wrap">
+    <h1>🚀 JobPilot — Live Jobs</h1>
+    <div class="sub">AI-graded job matches, updated automatically. Built by Vasavi Annapureddy.</div>
+  </div></div>
+
+  <div class="main">
+    <div class="filters" id="gradeF">
+      <a data-grade="A" class="active">⭐ Grade A</a>
+      <a data-grade="B">👍 Grade B</a>
+    </div>
+    <div class="filters" id="profF"></div>
+    <div id="list"><div class="load">Loading your jobs…</div></div>
+    <div class="foot">
+      Data read live from Supabase · The AI grading runs in the background (GitHub Actions).<br>
+      Repo: <a href="https://github.com/vasaviAnnapureddy/JobPilot">github.com/vasaviAnnapureddy/JobPilot</a>
+    </div>
+  </div>
+
+<script>
+// Supabase publishable key — safe to be public (read-only, protected by RLS).
+const SUPABASE_URL = "https://mfvjmdgpmixgrktqwobr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_LUKrxQ2LyAfaaRekvmdbng_0F-zTO9m";
+
+let grade = "A", profile = "";
+let allProfiles = new Set();
+
+async function fetchJobs(){
+  const list = document.getElementById('list');
+  list.innerHTML = '<div class="load">Loading your jobs…</div>';
+  const url = `${SUPABASE_URL}/rest/v1/jobs?select=title,company,location,portal,score,grade,match_reason,apply_url,profile,found_at&grade=eq.${grade}&order=score.desc&limit=200`;
+  try{
+    const r = await fetch(url, {headers:{apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    let jobs = await r.json();
+    jobs.forEach(j=>{ if(j.profile) allProfiles.add(j.profile); });
+    renderProfiles();
+    if(profile) jobs = jobs.filter(j=>(j.profile||"")===profile);
+    render(jobs);
+  }catch(e){
+    list.innerHTML = `<div class="load">Could not load jobs (${e.message}).<br>
+      Make sure the read policy is enabled in Supabase (see setup).</div>`;
+  }
+}
+
+function renderProfiles(){
+  const f = document.getElementById('profF');
+  if(allProfiles.size===0){ f.innerHTML=''; return; }
+  let html = `<a data-prof="" class="${profile===''?'active':''}">All resumes</a>`;
+  allProfiles.forEach(p=>{ html += `<a data-prof="${p}" class="${profile===p?'active':''}">${p}</a>`; });
+  f.innerHTML = html;
+  f.querySelectorAll('a').forEach(a=>a.onclick=()=>{ profile=a.dataset.prof; fetchJobs(); });
+}
+
+function render(jobs){
+  const list = document.getElementById('list');
+  if(!jobs.length){ list.innerHTML='<div class="load">No jobs here yet.</div>'; return; }
+  list.innerHTML = jobs.map(j=>{
+    const d=(j.found_at||"").slice(0,10); const dd=d?d.slice(8,10)+"/"+d.slice(5,7):"";
+    return `<div class="job">
+      <div class="row">
+        <div><strong>${j.title||""}</strong><br>
+          <span class="muted">${j.company||""} · ${j.location||""}</span></div>
+        <div style="text-align:right;white-space:nowrap">
+          <span class="pill ${j.grade==='A'?'a':'b'}">${j.score}/100</span><br>
+          <span class="muted" style="font-size:11px">${dd}</span></div>
+      </div>
+      <div style="margin-top:6px">
+        <span class="pill src">${j.portal||""}</span>
+        ${j.profile?`<span class="pill src">${j.profile}</span>`:""}
+      </div>
+      <div class="muted" style="margin-top:6px">${(j.match_reason||"").slice(0,160)}</div>
+      ${j.apply_url?`<a class="btn" href="${j.apply_url}" target="_blank">Apply →</a>`:""}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('gradeF').querySelectorAll('a').forEach(a=>a.onclick=()=>{
+  document.querySelectorAll('#gradeF a').forEach(x=>x.classList.remove('active'));
+  a.classList.add('active'); grade=a.dataset.grade; fetchJobs();
+});
+
+fetchJobs();
+</script>
+</body>
+</html>
