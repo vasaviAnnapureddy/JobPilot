@@ -2,85 +2,111 @@
 {% block title %}Grow & Practice{% endblock %}
 {% block body %}
 <h1>Grow &amp; Practice</h1>
-<p class="sub">Get referrals, and build the skills that actually get you hired — track it daily.</p>
+<p class="sub">Log the problems you solve. The coach tells you what you achieved and what to solve next.</p>
 
-<!-- Practice streak stats -->
+<!-- Achievements -->
 <div class="grid g4" style="margin-bottom:20px">
-  <div class="card stat"><div class="n" style="color:var(--green)">🔥 {{ streak }}</div><div class="l">Day streak</div></div>
-  <div class="card stat"><div class="n">{{ today_min }}</div><div class="l">Minutes today</div></div>
-  <div class="card stat"><div class="n" style="color:var(--blue)">{{ totals.leetcode|default:0 }}</div><div class="l">LeetCode mins (total)</div></div>
-  <div class="card stat"><div class="n" style="color:var(--amber)">{{ totals.study|default:0 }}</div><div class="l">Study mins (total)</div></div>
-</div>
-
-<div class="grid g2">
-  <!-- Referral finder -->
-  <div class="card">
-    <h3 style="margin-bottom:6px">🤝 Referral Finder</h3>
-    <p class="muted" style="margin-bottom:10px">Drafts your message + gives the LinkedIn search to find people. (Referrals = the #1 way freshers get hired.)</p>
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="referral">
-      <input type="text" name="company" placeholder="Company (e.g. PwC)" style="margin-bottom:8px" required>
-      <input type="text" name="role" placeholder="Role (e.g. AI Engineer)" style="margin-bottom:10px">
-      <button class="btn primary">Draft referral request</button>
-    </form>
-  </div>
-
-  <!-- Log practice -->
-  <div class="card">
-    <h3 style="margin-bottom:6px">✍️ Log today's practice</h3>
-    <p class="muted" style="margin-bottom:10px">LeetCode, study, or YouTube learning — track your time & topics.</p>
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="log">
-      <div class="row-flex" style="margin-bottom:8px">
-        <select name="kind" style="width:auto">
-          <option value="leetcode">💻 LeetCode</option>
-          <option value="study">📚 Study (AI/DS/Stats)</option>
-          <option value="youtube">▶️ YouTube learning</option>
-          <option value="project">🛠️ Project</option>
-        </select>
-        <input type="number" name="count" placeholder="# solved" style="width:90px">
-        <input type="number" name="minutes" placeholder="mins" style="width:80px" required>
-      </div>
-      <input type="text" name="topic" placeholder="Topic (e.g. Dynamic Programming)" style="margin-bottom:8px">
-      <input type="text" name="link" placeholder="Link (optional)" style="margin-bottom:10px">
-      <button class="btn green">Add to log</button>
-    </form>
+  <div class="card stat"><div class="n" style="color:var(--green)">{{ s.total }}</div><div class="l">Problems solved</div></div>
+  <div class="card stat"><div class="n">🔥 {{ s.streak }}</div><div class="l">Day streak</div></div>
+  <div class="card stat"><div class="n" style="color:var(--blue)">{{ s.hours }}</div><div class="l">Total hours</div></div>
+  <div class="card stat">
+    <div class="n" style="font-size:18px">{{ s.easy }}<span class="muted" style="font-size:13px">E</span>
+      {{ s.medium }}<span class="muted" style="font-size:13px">M</span>
+      {{ s.hard }}<span class="muted" style="font-size:13px">H</span></div>
+    <div class="l">By difficulty</div>
   </div>
 </div>
 
-{% if referral %}
-  <div class="card" style="margin-top:18px;border-left:4px solid var(--blue)">
-    <h3 style="color:var(--navy)">Referral draft — {{ referral.company }}</h3>
-    {% if referral.error %}<p class="muted">{{ referral.error }}</p>{% else %}
-    <p style="margin-top:8px"><strong>1. Connection note:</strong></p>
-    <div class="muted" style="white-space:pre-wrap">{{ referral.connect_note }}</div>
-    <p style="margin-top:10px"><strong>2. Referral message (after they accept):</strong></p>
-    <div class="muted" style="white-space:pre-wrap">{{ referral.referral_message }}</div>
-    {% if referral.tips %}<p style="margin-top:10px"><strong>Tips:</strong></p>
-      <ul style="margin-left:18px" class="muted">{% for t in referral.tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
-    <p style="margin-top:12px"><a href="{{ referral.search_url }}" target="_blank" class="btn primary">🔎 Find people at {{ referral.company }} on LinkedIn →</a></p>
-    {% endif %}
+{% if coach %}
+  <div class="card" style="border-left:4px solid var(--green);margin-bottom:18px">
+    <h3 style="color:var(--navy)">🧠 {{ coach.title }}</h3>
+    <div style="white-space:pre-wrap;font-size:14px;line-height:1.6;margin-top:8px">{{ coach.text }}</div>
   </div>
 {% endif %}
 
-<!-- Recent practice -->
-<h3 style="margin:22px 0 10px">Recent practice</h3>
+<div class="grid g2">
+  <!-- Log a solved problem -->
+  <div class="card">
+    <h3 style="margin-bottom:6px">✍️ I solved a problem</h3>
+    <p class="muted" style="margin-bottom:10px">Add each LeetCode problem you finish.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="log">
+      <input type="hidden" name="kind" value="leetcode">
+      <input type="text" name="name" placeholder="Problem name (e.g. Two Sum)" style="margin-bottom:8px" required>
+      <div class="row-flex" style="margin-bottom:8px">
+        <select name="difficulty" style="width:auto">
+          <option>Easy</option><option>Medium</option><option>Hard</option>
+        </select>
+        <input type="text" name="topic" placeholder="Topic (e.g. Arrays)" style="flex:1">
+        <input type="number" name="minutes" placeholder="mins" style="width:80px">
+      </div>
+      <button class="btn green">Add problem</button>
+    </form>
+  </div>
+
+  <!-- The coach -->
+  <div class="card" style="border-left:4px solid var(--blue)">
+    <h3 style="margin-bottom:6px">🧠 Coach me</h3>
+    <p class="muted" style="margin-bottom:10px">Get your next steps based on your level, or a plan for a company.</p>
+    <form method="post" style="margin-bottom:10px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="coach_me">
+      <button class="btn primary">What should I solve next?</button>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="coach_company">
+      <div class="row-flex">
+        <input type="text" name="company" placeholder="Company (e.g. PwC)" style="flex:1" required>
+        <button class="btn ghost">Plan for this company</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Referral finder (kept) -->
+<div class="card" style="margin-top:16px">
+  <h3 style="margin-bottom:6px">🤝 Referral Finder</h3>
+  <p class="muted" style="margin-bottom:10px">Referrals are the #1 way freshers get hired. Drafts your message + the LinkedIn search.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="referral">
+    <div class="row-flex">
+      <input type="text" name="company" placeholder="Company" style="flex:1" required>
+      <input type="text" name="role" placeholder="Role (optional)" style="flex:1">
+      <button class="btn primary">Draft referral</button>
+    </div>
+  </form>
+  {% if referral and not referral.error %}
+    <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+      <strong>Connection note:</strong><div class="muted" style="white-space:pre-wrap">{{ referral.connect_note }}</div>
+      <strong style="display:block;margin-top:8px">Referral message:</strong><div class="muted" style="white-space:pre-wrap">{{ referral.referral_message }}</div>
+      <a href="{{ referral.search_url }}" target="_blank" class="btn primary" style="margin-top:8px">🔎 Find people on LinkedIn →</a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Recent problems -->
+<h3 style="margin:22px 0 10px">Recent problems ({{ s.total }} total)</h3>
 <table>
-  <thead><tr><th>Day</th><th>Type</th><th>Topic</th><th>Solved</th><th>Minutes</th></tr></thead>
+  <thead><tr><th>Problem</th><th>Difficulty</th><th>Topic</th><th>Mins</th><th>When</th></tr></thead>
   <tbody>
   {% for e in entries %}
     <tr>
-      <td class="muted">{{ e.day }}</td>
-      <td><span class="pill grey">{{ e.kind }}</span></td>
-      <td>{{ e.topic|default:'—' }}</td>
-      <td>{{ e.count|default:0 }}</td>
-      <td>{{ e.minutes|default:0 }}</td>
+      <td><strong>{{ e.name|default:'—' }}</strong></td>
+      <td>
+        {% if e.difficulty == 'Easy' %}<span class="pill a">Easy</span>
+        {% elif e.difficulty == 'Medium' %}<span class="pill warn">Medium</span>
+        {% else %}<span class="pill red">Hard</span>{% endif %}
+      </td>
+      <td class="muted">{{ e.topic|default:'—' }}</td>
+      <td>{{ e.minutes }}</td>
+      <td class="muted">{{ e.ts }}</td>
     </tr>
   {% empty %}
     <tr><td colspan="5" class="muted" style="text-align:center;padding:24px">
-      No practice logged yet. Log your first LeetCode session above — small daily reps beat cramming.</td></tr>
+      No problems logged yet. Solve one on LeetCode, add it above, then click "What should I solve next?"</td></tr>
   {% endfor %}
   </tbody>
 </table>

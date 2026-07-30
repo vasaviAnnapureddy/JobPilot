@@ -305,9 +305,10 @@ def interview_prep_page(request):
                   {"result": result, "heading": heading, "history": history})
 
 
-# ── Grow & Practice (referrals + coding/study tracker) ─
+# ── Grow & Practice (referrals + LeetCode coach) ─────
 def grow_page(request):
-    referral = None
+    from core import practice
+    referral, coach = None, None
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "referral":
@@ -317,14 +318,26 @@ def grow_page(request):
             if company:
                 referral = rf.find_referral(company, role)
         elif action == "log":
-            _add_practice(request)
+            practice.add(
+                name=request.POST.get("name", "")[:150],
+                difficulty=request.POST.get("difficulty", "Easy"),
+                topic=request.POST.get("topic", "")[:100],
+                minutes=request.POST.get("minutes") or 0,
+                kind=request.POST.get("kind", "leetcode"),
+            )
             return redirect("grow")
+        elif action == "coach_me":
+            from agents import coding_coach as cc
+            coach = {"title": "Your next steps", "text": cc.next_for_me()}
+        elif action == "coach_company":
+            from agents import coding_coach as cc
+            company = request.POST.get("company", "").strip()
+            if company:
+                coach = {"title": f"Coding plan for {company}", "text": cc.for_company(company)}
 
-    # practice stats
-    entries, today_min, streak, totals = _practice_stats()
     return render(request, "dashboard/grow.html", {
-        "referral": referral, "entries": entries,
-        "today_min": today_min, "streak": streak, "totals": totals,
+        "referral": referral, "coach": coach,
+        "entries": practice.entries(15), "s": practice.summary(),
     })
 
 
@@ -392,38 +405,3 @@ def mock_feedback(request):
         return JsonResponse({"feedback": f"The AI was busy — try again. ({str(e)[:60]})"})
 
 
-def _add_practice(request):
-    try:
-        _client().table("practice_log").insert({
-            "kind":    request.POST.get("kind", "leetcode"),
-            "topic":   request.POST.get("topic", "")[:200],
-            "count":   int(request.POST.get("count") or 0),
-            "minutes": int(request.POST.get("minutes") or 0),
-            "link":    request.POST.get("link", "")[:500],
-            "notes":   request.POST.get("notes", "")[:500],
-        }).execute()
-    except Exception:
-        pass
-
-
-def _practice_stats():
-    from datetime import date, timedelta
-    try:
-        rows = (_client().table("practice_log")
-                .select("day,kind,topic,count,minutes,link")
-                .order("id", desc=True).limit(60).execute().data or [])
-    except Exception:
-        return [], 0, 0, {}
-    today = str(date.today())
-    today_min = sum(r.get("minutes", 0) for r in rows if str(r.get("day")) == today)
-    # streak: consecutive days with any entry
-    days = {str(r.get("day")) for r in rows}
-    streak, d = 0, date.today()
-    while str(d) in days:
-        streak += 1
-        d -= timedelta(days=1)
-    totals = {}
-    for r in rows:
-        k = r.get("kind", "other")
-        totals[k] = totals.get(k, 0) + r.get("minutes", 0)
-    return rows[:15], today_min, streak, totals
