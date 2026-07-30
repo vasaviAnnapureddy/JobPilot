@@ -296,6 +296,25 @@ def mock_interview_page(request):
                   {"questions_json": json.dumps(questions), "role": role})
 
 
+def chat_page(request):
+    role = request.GET.get("role", "AI/ML Engineer")
+    return render(request, "dashboard/chat.html", {"role": role})
+
+
+@require_POST
+def chat_send(request):
+    """Receives the conversation so far, returns the interviewer's next message."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+        messages = body.get("messages", [])
+        role = body.get("role", "AI/ML Engineer")
+        from agents import interview_prep as ip
+        reply = ip.interview_chat(messages, role=role)
+        return JsonResponse({"reply": reply})
+    except Exception as e:
+        return JsonResponse({"reply": f"(The AI was busy — please send that again.) [{str(e)[:50]}]"})
+
+
 @require_POST
 def mock_feedback(request):
     """Receives a transcript, returns AI feedback as JSON."""

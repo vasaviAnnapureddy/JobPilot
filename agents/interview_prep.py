@@ -129,6 +129,41 @@ Simple English."""
     return ans
 
 
+def interview_chat(messages, role="AI/ML Engineer"):
+    """
+    A REAL back-and-forth mock interview. `messages` is the conversation so far:
+    a list of {"role": "user"|"assistant", "content": "..."}.
+    Returns the interviewer's next single message (asks, reacts, corrects, follows up).
+    """
+    # personalise with her real resume the first time
+    ev = _evidence(role)
+    transcript = ""
+    for m in messages:
+        who = "Interviewer" if m.get("role") == "assistant" else "Candidate"
+        transcript += f"{who}: {m.get('content','')}\n"
+
+    if not messages:
+        transcript = "(the interview is just starting)"
+
+    prompt = f"""You are a friendly but real interviewer conducting a live mock interview for
+Vasavi, a fresher applying for a {role} role. Her real background: {ev}
+
+HOW TO BEHAVE (very important):
+- Talk like a real human interviewer, warm and natural. Short messages (2-5 sentences).
+- Ask ONE question at a time, then WAIT.
+- After she answers: briefly react, GENTLY correct any mistake or weak point, give a quick tip,
+  then ask a natural follow-up OR move to the next question.
+- Sometimes dig deeper into her real projects. If she struggles, guide her kindly.
+- Do NOT list many questions at once. Do NOT write paragraphs. Keep it conversational.
+- If this is the start, greet her warmly and ask the first question.
+
+Conversation so far:
+{transcript}
+
+Now write ONLY the interviewer's next message (nothing else):"""
+    return llm.ask(prompt, log_fn=lambda m: db.log("interview", m, "WARN"))
+
+
 def _save(kind, company, role, question, response):
     try:
         db.get_client().table("interview_prep").insert({
