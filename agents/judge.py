@@ -63,7 +63,8 @@ def _grade_batch(jobs, profile):
     entries = []
     for j in jobs:
         job_text = f"{j['title']} at {j['company']}. {(j.get('description') or '')[:800]}"
-        evidence = rag.retrieve(job_text, top_k=2)   # RAG: relevant resume parts
+        prof = j.get("profile") or "master"          # grade vs THIS job's resume
+        evidence = rag.retrieve(job_text, profile=prof, top_k=2)   # per-profile RAG
         entries.append({
             "id": j["id"],
             "title": j["title"],

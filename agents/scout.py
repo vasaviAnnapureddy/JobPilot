@@ -37,8 +37,17 @@ def _standardise(raw_row):
     }
 
 
+def _active_profiles():
+    """Profiles that have a resume file — these drive the searches."""
+    from core import config
+    active = [k for k in config.RESUME_PROFILES
+              if (config.RESUMES_DIR / f"cv_{k}.md").exists()]
+    return active or [config.DEFAULT_PROFILE]     # fall back to one default
+
+
 def run():
-    """Search all portals, store new jobs, return count of new jobs found."""
+    """Search per resume profile, tag each job with its profile, store new jobs."""
+    from core import config
     db.log("scout", "Starting job search across portals...")
 
     try:
@@ -47,41 +56,50 @@ def run():
         db.log("scout", f"Cannot import legacy search: {e}", "ERROR")
         return 0
 
+    profiles = _active_profiles()
+    db.log("scout", f"Active resume profiles: {', '.join(profiles)}")
     all_rows = []
 
-    # Portal 1+2: LinkedIn + Indeed via JobSpy
-    try:
-        df = job_search.fetch_jobspy_jobs()
-        if df is not None and len(df):
-            all_rows.extend(df.to_dict("records"))
-            db.log("scout", f"LinkedIn/Indeed: {len(df)} jobs")
-    except Exception as e:
-        db.log("scout", f"JobSpy failed: {str(e)[:100]}", "WARN")
+    # LinkedIn + Indeed via JobSpy — run each profile's OWN searches, tag the jobs
+    for profile in profiles:
+        try:
+            job_search.JOBSPY_SEARCHES = [(q, "India")
+                                          for q in config.RESUME_PROFILES[profile]["searches"]]
+        except Exception:
+            pass
+        try:
+            df = job_search.fetch_jobspy_jobs()
+            if df is not None and len(df):
+                rows = df.to_dict("records")
+                for r in rows:
+                    r["_profile"] = profile        # tag with the resume it belongs to
+                all_rows.extend(rows)
+                db.log("scout", f"[{profile}] LinkedIn/Indeed: {len(df)} jobs")
+        except Exception as e:
+            db.log("scout", f"[{profile}] JobSpy failed: {str(e)[:80]}", "WARN")
 
-    # Portal 3: Naukri via browser interception
-    try:
-        df = job_search.fetch_naukri_jobs()
-        if df is not None and len(df):
-            all_rows.extend(df.to_dict("records"))
-            db.log("scout", f"Naukri: {len(df)} jobs")
-    except Exception as e:
-        db.log("scout", f"Naukri failed: {str(e)[:100]}", "WARN")
-
-    # Portal 4: Internshala
+    # Internshala — tag with the first active profile (single category set)
     try:
         df = job_search.fetch_internshala_jobs()
         if df is not None and len(df):
-            all_rows.extend(df.to_dict("records"))
+            rows = df.to_dict("records")
+            for r in rows:
+                r["_profile"] = profiles[0]
+            all_rows.extend(rows)
             db.log("scout", f"Internshala: {len(df)} jobs")
     except Exception as e:
-        db.log("scout", f"Internshala failed: {str(e)[:100]}", "WARN")
+        db.log("scout", f"Internshala failed: {str(e)[:80]}", "WARN")
 
     if not all_rows:
         db.log("scout", "No jobs found from any portal!", "ERROR")
         return 0
 
-    clean = [_standardise(r) for r in all_rows]
-    clean = [c for c in clean if c["title"] and c["company"]]
+    clean = []
+    for r in all_rows:
+        c = _standardise(r)
+        c["profile"] = r.get("_profile", config.DEFAULT_PROFILE)
+        if c["title"] and c["company"]:
+            clean.append(c)
     new_count = db.insert_jobs(clean)
 
     db.log("scout", f"Done — {len(clean)} jobs found, {new_count} are NEW")

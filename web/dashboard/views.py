@@ -65,17 +65,38 @@ def toggle_switch(request):
 
 # ── Today's Jobs ─────────────────────────────────────
 def jobs(request):
-    grade = request.GET.get("grade", "A")
-    lane  = request.GET.get("lane", "")
-    day   = request.GET.get("day", "")
-    q = (_client().table("jobs")
-         .select("id,title,company,location,portal,score,grade,lane,apply_url,match_reason,missing_skills,scam_flags,found_at")
-         .order("score", desc=True).limit(300))
-    if grade:
-        q = q.eq("grade", grade)
-    if lane:
-        q = q.eq("lane", lane)
-    rows = q.execute().data or []
+    from core import config
+    grade   = request.GET.get("grade", "A")
+    lane    = request.GET.get("lane", "")
+    day     = request.GET.get("day", "")
+    profile = request.GET.get("profile", "")
+
+    # select with profile if the column exists; fall back if not
+    cols_with = "id,title,company,location,portal,score,grade,lane,apply_url,match_reason,missing_skills,scam_flags,found_at,profile"
+    cols_no   = "id,title,company,location,portal,score,grade,lane,apply_url,match_reason,missing_skills,scam_flags,found_at"
+    def _query(cols):
+        q = _client().table("jobs").select(cols).order("score", desc=True).limit(300)
+        if grade: q = q.eq("grade", grade)
+        if lane:  q = q.eq("lane", lane)
+        return q.execute().data or []
+    try:
+        rows = _query(cols_with)
+        has_profiles = True
+    except Exception:
+        rows = _query(cols_no)
+        has_profiles = False
+
+    # profile tabs (labels + counts)
+    profile_tabs = []
+    if has_profiles:
+        counts = {}
+        for r in rows:
+            counts[r.get("profile") or "ai_ml"] = counts.get(r.get("profile") or "ai_ml", 0) + 1
+        for key, meta in config.RESUME_PROFILES.items():
+            if counts.get(key):
+                profile_tabs.append({"key": key, "label": meta["label"], "count": counts[key]})
+        if profile:
+            rows = [r for r in rows if (r.get("profile") or "ai_ml") == profile]
 
     # add a short date (DD/MM) + remote flag to each row
     for r in rows:
@@ -97,7 +118,8 @@ def jobs(request):
 
     return render(request, "dashboard/jobs.html",
                   {"jobs": rows, "grade": grade, "lane": lane, "day": day,
-                   "count": len(rows), "date_summary": date_summary})
+                   "count": len(rows), "date_summary": date_summary,
+                   "profile_tabs": profile_tabs, "profile": profile})
 
 
 # ── Application Tracker ──────────────────────────────
@@ -165,24 +187,69 @@ def decide_edit(request):
     return redirect("resume")
 
 
-# ── My Resume (upload / paste) ───────────────────────
+# ── My Resumes (upload files / paste — one per job type) ─
+def _extract_text(uploaded):
+    """Read text from an uploaded resume file (.txt/.md/.pdf/.docx)."""
+    import io
+    name = uploaded.name.lower()
+    data = uploaded.read()
+    try:
+        if name.endswith((".txt", ".md")):
+            return data.decode("utf-8", "replace")
+        if name.endswith(".pdf"):
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(data))
+            return "\n".join((pg.extract_text() or "") for pg in reader.pages)
+        if name.endswith(".docx"):
+            import docx
+            d = docx.Document(io.BytesIO(data))
+            return "\n".join(p.text for p in d.paragraphs)
+    except Exception:
+        return ""
+    return ""
+
+
 def my_resume(request):
     from core import config, rag
-    cv_path = config.RESUMES_DIR / "cv_master.md"
-    saved = False
+    profiles = config.RESUME_PROFILES
+    saved_profile, error = None, None
+
     if request.method == "POST":
+        profile = request.POST.get("profile", "").strip()
         text = request.POST.get("resume", "").strip()
-        if text:
-            cv_path.parent.mkdir(parents=True, exist_ok=True)
-            cv_path.write_text(text, encoding="utf-8")
+        up = request.FILES.get("resume_file")
+        if up and not text:
+            text = _extract_text(up).strip()
+            if not text:
+                error = f"Could not read '{up.name}'. Try a .txt/.pdf/.docx, or paste the text."
+        if profile in profiles and text and not error:
+            path = config.RESUMES_DIR / f"cv_{profile}.md"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
             try:
-                rag.build_index(force=True)   # re-embed so matching uses the new resume
+                _client().table("resume_profiles").upsert(
+                    {"profile_name": profile, "content_md": text[:8000]},
+                    on_conflict="profile_name").execute()
             except Exception:
                 pass
-            saved = True
-    current = cv_path.read_text(encoding="utf-8") if cv_path.exists() else ""
+            try:
+                rag.build_index(profile, force=True)   # embed this resume separately
+            except Exception:
+                pass
+            saved_profile = profile
+        elif not error:
+            error = "Please choose a resume type and paste text or upload a file."
+
+    # show each profile's saved resume
+    resumes = []
+    for key, meta in profiles.items():
+        path = config.RESUMES_DIR / f"cv_{key}.md"
+        content = path.read_text(encoding="utf-8") if path.exists() else ""
+        resumes.append({"key": key, "label": meta["label"],
+                        "chars": len(content), "content": content,
+                        "searches": ", ".join(meta["searches"][:3]) + " …"})
     return render(request, "dashboard/my_resume.html",
-                  {"current": current, "saved": saved, "chars": len(current)})
+                  {"resumes": resumes, "saved_profile": saved_profile, "error": error})
 
 
 # ── Mark a job as applied (feeds the Tracker) ────────

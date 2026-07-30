@@ -4,6 +4,18 @@
 <h1>Today's Jobs</h1>
 <p class="sub">{{ count }} jobs shown — ranked by how well they match you.</p>
 
+{% if profile_tabs %}
+<div class="card" style="margin-bottom:16px;padding:12px 16px;border-left:4px solid var(--blue)">
+  <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">By resume type</div>
+  <div class="filters">
+    <a href="/jobs/?grade={{ grade }}" class="{% if not profile %}active{% endif %}">All resumes</a>
+    {% for t in profile_tabs %}
+      <a href="/jobs/?grade={{ grade }}&profile={{ t.key }}" class="{% if profile == t.key %}active{% endif %}">{{ t.label }} · {{ t.count }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- Jobs found per date -->
 <div class="card" style="margin-bottom:16px;padding:12px 16px">
   <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Jobs found by date</div>

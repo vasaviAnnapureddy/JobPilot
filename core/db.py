@@ -80,22 +80,39 @@ def is_running():
 # JOBS
 # ────────────────────────────────────────────────
 def insert_jobs(job_dicts):
-    """Insert jobs, silently skipping duplicates (same title+company)."""
+    """
+    Insert jobs, skipping duplicates. If the 'profile' column doesn't exist
+    yet (migration_v2 not run), it retries without that field so scraping
+    never breaks — you just don't get the split until you run the migration.
+    """
     inserted = 0
     for job in job_dicts:
         try:
             get_client().table("jobs").insert(job).execute()
             inserted += 1
-        except Exception:
-            pass  # duplicate — already found on a previous day
+        except Exception as e:
+            msg = str(e)
+            if "profile" in msg and ("column" in msg or "schema" in msg or "PGRST" in msg):
+                trimmed = {k: v for k, v in job.items() if k != "profile"}
+                try:
+                    get_client().table("jobs").insert(trimmed).execute()
+                    inserted += 1
+                except Exception:
+                    pass
+            # else: duplicate (title+company already exists) — skip silently
     return inserted
 
 
 def get_ungraded_jobs(limit=200):
-    res = with_retry(lambda: (get_client().table("jobs")
-           .select("id,title,company,location,description")
-           .is_("grade", "null")
-           .limit(limit).execute()))
+    # try to include the profile column; fall back if migration_v2 not run yet
+    try:
+        res = with_retry(lambda: (get_client().table("jobs")
+               .select("id,title,company,location,description,profile")
+               .is_("grade", "null").limit(limit).execute()))
+    except Exception:
+        res = with_retry(lambda: (get_client().table("jobs")
+               .select("id,title,company,location,description")
+               .is_("grade", "null").limit(limit).execute()))
     return res.data or []
 
 

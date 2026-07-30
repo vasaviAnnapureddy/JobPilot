@@ -20,12 +20,26 @@ from pathlib import Path
 
 from core import config, embeddings
 
-CHUNK_CACHE = config.RESUMES_DIR / "resume_chunks.json"
+# Each resume PROFILE gets its own file + its own cached index.
+#   profile "master"       -> cv_master.md       -> resume_chunks.json
+#   profile "data_science" -> cv_data_science.md -> resume_chunks_data_science.json
+# This is what lets a Data Science resume match data-science jobs and an
+# AI resume match AI jobs — separately.
+
+def _resume_path(profile):
+    if profile == "master":
+        return config.RESUMES_DIR / "cv_master.md"
+    return config.RESUMES_DIR / f"cv_{profile}.md"
+
+
+def _cache_path(profile):
+    if profile == "master":
+        return config.RESUMES_DIR / "resume_chunks.json"
+    return config.RESUMES_DIR / f"resume_chunks_{profile}.json"
 
 
 def _split_resume(md_text):
     """Split resume markdown into meaningful chunks (by heading/blank lines)."""
-    # Split on markdown headings or double newlines
     raw = re.split(r"\n(?=#{1,3}\s)|\n\s*\n", md_text)
     chunks = []
     for block in raw:
@@ -35,17 +49,18 @@ def _split_resume(md_text):
     return chunks
 
 
-def build_index(force=False):
-    """
-    Embed every resume chunk and cache to disk. Run once (or after the
-    resume changes). Returns the number of chunks indexed.
-    """
-    cv = config.RESUMES_DIR / "cv_master.md"
+def build_index(profile="master", force=False):
+    """Embed a profile's resume chunks and cache to disk. Returns chunk count."""
+    cv = _resume_path(profile)
     if not cv.exists():
-        return 0
+        # fall back to master resume if this profile has none yet
+        cv = _resume_path("master")
+        if not cv.exists():
+            return 0
+    cache = _cache_path(profile)
 
-    if CHUNK_CACHE.exists() and not force:
-        return len(json.loads(CHUNK_CACHE.read_text(encoding="utf-8")))
+    if cache.exists() and not force:
+        return len(json.loads(cache.read_text(encoding="utf-8")))
 
     chunks = _split_resume(cv.read_text(encoding="utf-8"))
     indexed = []
@@ -54,22 +69,19 @@ def build_index(force=False):
         if vec:
             indexed.append({"text": ch, "vector": vec})
 
-    CHUNK_CACHE.write_text(json.dumps(indexed), encoding="utf-8")
+    cache.write_text(json.dumps(indexed), encoding="utf-8")
     return len(indexed)
 
 
-def retrieve(job_text, top_k=3):
-    """
-    Given a job description, return the top_k most relevant resume chunks
-    (as plain text) to use as grading evidence. Falls back to [] if the
-    index or embeddings are unavailable.
-    """
-    if not CHUNK_CACHE.exists():
-        build_index()
-    if not CHUNK_CACHE.exists():
+def retrieve(job_text, profile="master", top_k=3):
+    """Return the top_k resume chunks (from this profile's resume) closest in meaning."""
+    cache = _cache_path(profile)
+    if not cache.exists():
+        build_index(profile)
+    if not cache.exists():
         return []
 
-    index = json.loads(CHUNK_CACHE.read_text(encoding="utf-8"))
+    index = json.loads(cache.read_text(encoding="utf-8"))
     q_vec = embeddings.embed(job_text, task="RETRIEVAL_QUERY")
     if not q_vec:
         return []

@@ -1,28 +1,51 @@
 {% extends "dashboard/base.html" %}
-{% block title %}My Resume{% endblock %}
+{% block title %}My Resumes{% endblock %}
 {% block body %}
-<h1>My Resume</h1>
-<p class="sub">Paste your resume here. The AI uses it to match jobs and coach you — via RAG, grounded in your real experience.</p>
+<h1>My Resumes</h1>
+<p class="sub">Add a resume for each job type. Each one searches its own jobs and matches against itself.</p>
 
-{% if saved %}
-  <div class="card" style="background:#e6f4ec;border-left:4px solid var(--green);margin-bottom:16px">
-    ✅ Saved and re-indexed. Your job matching + interview coaching now use this resume.
+{% if saved_profile %}
+  <div class="card" style="background:#e6f4ec;border-left:4px solid var(--green);margin-bottom:14px">
+    ✅ Saved &amp; indexed for <strong>{{ saved_profile }}</strong>. This resume now drives that job type.
   </div>
 {% endif %}
+{% if error %}
+  <div class="card" style="background:#fdecea;border-left:4px solid var(--red);margin-bottom:14px">⚠️ {{ error }}</div>
+{% endif %}
 
-<div class="card">
-  <form method="post">
-    {% csrf_token %}
-    <div class="muted" style="margin-bottom:8px">Current length: {{ chars }} characters</div>
-    <textarea name="resume" rows="22" style="font-family:Consolas,monospace;font-size:13px">{{ current }}</textarea>
-    <div style="margin-top:12px">
-      <button class="btn green">💾 Save resume &amp; re-index</button>
-    </div>
-  </form>
-</div>
-
-<p class="muted" style="margin-top:12px">
-  Tip: paste it as plain text or markdown. After saving, the Judge grades jobs against this exact resume,
-  and the Interview Coach cites these projects.
+<p class="muted" style="margin-bottom:16px">
+  📎 Upload a file (<b>.pdf, .docx, .txt</b>) from your laptop, or paste the text.
+  <em>(Google Drive: download the file to your laptop first, then upload it here.)</em>
 </p>
+
+{% for r in resumes %}
+  <div class="card" style="margin-bottom:14px">
+    <div class="row-flex" style="justify-content:space-between">
+      <h3 style="margin:0">{{ r.label }}
+        {% if r.chars %}<span class="pill a" style="margin-left:6px">✓ added ({{ r.chars }} chars)</span>
+        {% else %}<span class="pill grey" style="margin-left:6px">not added yet</span>{% endif %}
+      </h3>
+    </div>
+    <div class="muted" style="font-size:12px;margin:4px 0 10px">Searches jobs like: {{ r.searches }}</div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="profile" value="{{ r.key }}">
+      <div class="row-flex" style="margin-bottom:8px">
+        <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
+        <span class="muted">or paste below ↓</span>
+      </div>
+      <textarea name="resume" rows="5" placeholder="…or paste your {{ r.label }} resume text here" style="font-family:Consolas,monospace;font-size:12px">{{ r.content }}</textarea>
+      <div style="margin-top:8px"><button class="btn green">💾 Save {{ r.label }} resume</button></div>
+    </form>
+  </div>
+{% endfor %}
+
+<div class="card" style="background:#e8f0fe;border-left:4px solid var(--blue)">
+  <strong>After adding your resumes:</strong>
+  <ol style="margin:8px 0 0 18px" class="muted">
+    <li>Press START on the Command Center (or run the agent) — it searches each resume's jobs separately.</li>
+    <li>Open <b>Today's Jobs</b> — the jobs are split into tabs by resume type.</li>
+  </ol>
+</div>
 {% endblock %}
