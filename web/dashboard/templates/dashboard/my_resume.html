@@ -2,50 +2,67 @@
 {% block title %}My Resumes{% endblock %}
 {% block body %}
 <h1>My Resumes</h1>
-<p class="sub">Add a resume for each job type. Each one searches its own jobs and matches against itself.</p>
+<p class="sub">Add as many resumes as you want. Give each one a name — it finds and matches its own jobs.</p>
 
 {% if saved_profile %}
   <div class="card" style="background:#e6f4ec;border-left:4px solid var(--green);margin-bottom:14px">
-    ✅ Saved &amp; indexed for <strong>{{ saved_profile }}</strong>. This resume now drives that job type.
+    ✅ Saved &amp; indexed <strong>{{ saved_profile }}</strong>. It now finds and matches its own jobs.
   </div>
 {% endif %}
 {% if error %}
   <div class="card" style="background:#fdecea;border-left:4px solid var(--red);margin-bottom:14px">⚠️ {{ error }}</div>
 {% endif %}
 
-<p class="muted" style="margin-bottom:16px">
-  📎 Upload a file (<b>.pdf, .docx, .txt</b>) from your laptop, or paste the text.
-  <em>(Google Drive: download the file to your laptop first, then upload it here.)</em>
-</p>
-
-{% for r in resumes %}
-  <div class="card" style="margin-bottom:14px">
-    <div class="row-flex" style="justify-content:space-between">
-      <h3 style="margin:0">{{ r.label }}
-        {% if r.chars %}<span class="pill a" style="margin-left:6px">✓ added ({{ r.chars }} chars)</span>
-        {% else %}<span class="pill grey" style="margin-left:6px">not added yet</span>{% endif %}
-      </h3>
+<!-- ADD A NEW RESUME -->
+<div class="card" style="border-left:4px solid var(--blue);margin-bottom:20px">
+  <h3 style="margin-bottom:6px">➕ Add a new resume</h3>
+  <p class="muted" style="margin-bottom:10px">
+    Give it a name (e.g. <em>Data Science</em>, <em>Computer Vision</em>, <em>MLOps</em>), then upload a file
+    (<b>.pdf / .docx / .txt</b>) or paste the text.
+    <em>(Google Drive: download the file first, then upload here.)</em>
+  </p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <input type="text" name="name" placeholder="Resume name (e.g. Data Science)" style="margin-bottom:8px" required>
+    <div class="row-flex" style="margin-bottom:8px">
+      <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
+      <span class="muted">or paste below ↓</span>
     </div>
-    <div class="muted" style="font-size:12px;margin:4px 0 10px">Searches jobs like: {{ r.searches }}</div>
+    <textarea name="resume" rows="5" placeholder="…or paste the resume text here" style="font-family:Consolas,monospace;font-size:12px"></textarea>
+    <div style="margin-top:8px"><button class="btn green">💾 Add this resume</button></div>
+  </form>
+</div>
 
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <input type="hidden" name="profile" value="{{ r.key }}">
-      <div class="row-flex" style="margin-bottom:8px">
-        <input type="file" name="resume_file" accept=".pdf,.docx,.txt,.md">
-        <span class="muted">or paste below ↓</span>
+<!-- EXISTING RESUMES -->
+<h3 style="margin:6px 0 10px">Your resumes ({{ resumes|length }})</h3>
+{% for r in resumes %}
+  <div class="card" style="margin-bottom:10px">
+    <div class="row-flex" style="justify-content:space-between">
+      <div>
+        <strong>{{ r.name }}</strong>
+        <span class="pill a" style="margin-left:6px">{{ r.chars }} chars</span>
+        <div class="muted" style="font-size:12px;margin-top:4px">Finds jobs like: {{ r.searches_short }}</div>
       </div>
-      <textarea name="resume" rows="5" placeholder="…or paste your {{ r.label }} resume text here" style="font-family:Consolas,monospace;font-size:12px">{{ r.content }}</textarea>
-      <div style="margin-top:8px"><button class="btn green">💾 Save {{ r.label }} resume</button></div>
-    </form>
+      <form method="post" onsubmit="return confirm('Delete this resume?')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="slug" value="{{ r.slug }}">
+        <button class="btn ghost" style="font-size:12px">🗑 Delete</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <div class="card muted" style="text-align:center;padding:24px">
+    No resumes yet. Add your first one above — for example a "Data Science" and an "AI" resume.
   </div>
 {% endfor %}
 
-<div class="card" style="background:#e8f0fe;border-left:4px solid var(--blue)">
+<div class="card" style="background:#e8f0fe;border-left:4px solid var(--blue);margin-top:16px">
   <strong>After adding your resumes:</strong>
   <ol style="margin:8px 0 0 18px" class="muted">
-    <li>Press START on the Command Center (or run the agent) — it searches each resume's jobs separately.</li>
-    <li>Open <b>Today's Jobs</b> — the jobs are split into tabs by resume type.</li>
+    <li>Press START (Command Center) — it searches each resume's jobs separately.</li>
+    <li>Open <b>Today's Jobs</b> — jobs are split into a tab per resume name.</li>
   </ol>
 </div>
 {% endblock %}

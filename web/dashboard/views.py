@@ -86,15 +86,15 @@ def jobs(request):
         rows = _query(cols_no)
         has_profiles = False
 
-    # profile tabs (labels + counts)
+    # profile tabs (labels + counts) — uses YOUR custom resume names
+    from core import profiles as P
     profile_tabs = []
     if has_profiles:
         counts = {}
         for r in rows:
             counts[r.get("profile") or "ai_ml"] = counts.get(r.get("profile") or "ai_ml", 0) + 1
-        for key, meta in config.RESUME_PROFILES.items():
-            if counts.get(key):
-                profile_tabs.append({"key": key, "label": meta["label"], "count": counts[key]})
+        for key, cnt in sorted(counts.items(), key=lambda x: -x[1]):
+            profile_tabs.append({"key": key, "label": P.label_for(key), "count": cnt})
         if profile:
             rows = [r for r in rows if (r.get("profile") or "ai_ml") == profile]
 
@@ -210,44 +210,38 @@ def _extract_text(uploaded):
 
 
 def my_resume(request):
-    from core import config, rag
-    profiles = config.RESUME_PROFILES
+    from core import rag, profiles as P
     saved_profile, error = None, None
 
     if request.method == "POST":
-        profile = request.POST.get("profile", "").strip()
+        action = request.POST.get("action", "add")
+        if action == "delete":
+            slug = request.POST.get("slug", "")
+            if slug:
+                P.delete_profile(slug)
+            return redirect("my_resume")
+
+        # add / update a named resume
+        name = request.POST.get("name", "").strip()
         text = request.POST.get("resume", "").strip()
         up = request.FILES.get("resume_file")
         if up and not text:
             text = _extract_text(up).strip()
             if not text:
                 error = f"Could not read '{up.name}'. Try a .txt/.pdf/.docx, or paste the text."
-        if profile in profiles and text and not error:
-            path = config.RESUMES_DIR / f"cv_{profile}.md"
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8")
+        if name and text and not error:
+            slug = P.add_profile(name, text)
             try:
-                _client().table("resume_profiles").upsert(
-                    {"profile_name": profile, "content_md": text[:8000]},
-                    on_conflict="profile_name").execute()
+                rag.build_index(slug, force=True)   # embed this resume on its own
             except Exception:
                 pass
-            try:
-                rag.build_index(profile, force=True)   # embed this resume separately
-            except Exception:
-                pass
-            saved_profile = profile
+            saved_profile = name
         elif not error:
-            error = "Please choose a resume type and paste text or upload a file."
+            error = "Please enter a name AND paste text or upload a file."
 
-    # show each profile's saved resume
-    resumes = []
-    for key, meta in profiles.items():
-        path = config.RESUMES_DIR / f"cv_{key}.md"
-        content = path.read_text(encoding="utf-8") if path.exists() else ""
-        resumes.append({"key": key, "label": meta["label"],
-                        "chars": len(content), "content": content,
-                        "searches": ", ".join(meta["searches"][:3]) + " …"})
+    resumes = P.list_profiles()
+    for r in resumes:
+        r["searches_short"] = ", ".join(r["searches"][:3]) + " …"
     return render(request, "dashboard/my_resume.html",
                   {"resumes": resumes, "saved_profile": saved_profile, "error": error})
 

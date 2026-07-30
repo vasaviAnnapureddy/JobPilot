@@ -38,15 +38,19 @@ def _standardise(raw_row):
 
 
 def _active_profiles():
-    """Profiles that have a resume file — these drive the searches."""
-    from core import config
-    active = [k for k in config.RESUME_PROFILES
-              if (config.RESUMES_DIR / f"cv_{k}.md").exists()]
-    return active or [config.DEFAULT_PROFILE]     # fall back to one default
+    """The user's named resumes drive the searches. Falls back to one default."""
+    from core import config, profiles as P
+    plist = P.list_profiles()
+    if plist:
+        return [(p["slug"], p["searches"]) for p in plist]
+    # no custom resumes yet -> one default search set
+    default_searches = config.RESUME_PROFILES.get(
+        config.DEFAULT_PROFILE, {}).get("searches", ["ai ml engineer fresher"])
+    return [(config.DEFAULT_PROFILE, default_searches)]
 
 
 def run():
-    """Search per resume profile, tag each job with its profile, store new jobs."""
+    """Search per named resume, tag each job with its resume, store new jobs."""
     from core import config
     db.log("scout", "Starting job search across portals...")
 
@@ -57,14 +61,13 @@ def run():
         return 0
 
     profiles = _active_profiles()
-    db.log("scout", f"Active resume profiles: {', '.join(profiles)}")
+    db.log("scout", f"Active resumes: {', '.join(slug for slug, _ in profiles)}")
     all_rows = []
 
-    # LinkedIn + Indeed via JobSpy — run each profile's OWN searches, tag the jobs
-    for profile in profiles:
+    # LinkedIn + Indeed via JobSpy — run each resume's OWN searches, tag the jobs
+    for slug, searches in profiles:
         try:
-            job_search.JOBSPY_SEARCHES = [(q, "India")
-                                          for q in config.RESUME_PROFILES[profile]["searches"]]
+            job_search.JOBSPY_SEARCHES = [(q, "India") for q in searches]
         except Exception:
             pass
         try:
@@ -72,19 +75,19 @@ def run():
             if df is not None and len(df):
                 rows = df.to_dict("records")
                 for r in rows:
-                    r["_profile"] = profile        # tag with the resume it belongs to
+                    r["_profile"] = slug           # tag with the resume it belongs to
                 all_rows.extend(rows)
-                db.log("scout", f"[{profile}] LinkedIn/Indeed: {len(df)} jobs")
+                db.log("scout", f"[{slug}] LinkedIn/Indeed: {len(df)} jobs")
         except Exception as e:
-            db.log("scout", f"[{profile}] JobSpy failed: {str(e)[:80]}", "WARN")
+            db.log("scout", f"[{slug}] JobSpy failed: {str(e)[:80]}", "WARN")
 
-    # Internshala — tag with the first active profile (single category set)
+    # Internshala — tag with the first resume (single category set)
     try:
         df = job_search.fetch_internshala_jobs()
         if df is not None and len(df):
             rows = df.to_dict("records")
             for r in rows:
-                r["_profile"] = profiles[0]
+                r["_profile"] = profiles[0][0]
             all_rows.extend(rows)
             db.log("scout", f"Internshala: {len(df)} jobs")
     except Exception as e:
