@@ -23,3 +23,6 @@ venv/
 
 # Personal study docs
 *.docx
+
+# Django collected static (regenerated on deploy)
+web/staticfiles/

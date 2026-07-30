@@ -17,8 +17,10 @@ except ImportError:
 
 import os
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-key-change-in-production-xyz123")
-DEBUG = True
-ALLOWED_HOSTS = ["*"]                                      # fine for local + single-user
+# DEBUG is True locally, False in the cloud (set DJANGO_DEBUG=false on Render)
+DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() != "false"
+ALLOWED_HOSTS = ["*"]                                      # single-user app; Render domain varies
+CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
@@ -26,6 +28,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware",           # serves static files in the cloud
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
 ]
@@ -46,5 +49,10 @@ DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3",
                          "NAME": BASE_DIR / "django_internal.sqlite3"}}
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
