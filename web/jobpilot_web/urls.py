@@ -5,6 +5,7 @@ urlpatterns = [
     path("", views.command_center, name="command_center"),
     path("toggle/", views.toggle_switch, name="toggle_switch"),
     path("jobs/", views.jobs, name="jobs"),
+    path("activity/", views.activity_page, name="activity"),
     path("tracker/", views.tracker, name="tracker"),
     path("tracker/update/", views.update_application, name="update_application"),
     path("outreach/", views.outreach_book, name="outreach"),

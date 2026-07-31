@@ -122,6 +122,45 @@ def jobs(request):
                    "profile_tabs": profile_tabs, "profile": profile})
 
 
+# ── Daily Activity (what happened each day, 3 lanes) ──
+def activity_page(request):
+    from collections import defaultdict
+    c = _client()
+    jobs = (c.table("jobs")
+            .select("id,title,company,lane,found_at,apply_url,profile")
+            .eq("grade", "A").limit(300).execute().data or [])
+    try:
+        outreach = (c.table("outreach")
+                    .select("id,company,contact_role,email_subject,approved_by_me,replied,sent_at")
+                    .order("id", desc=True).limit(100).execute().data or [])
+    except Exception:
+        outreach = []
+
+    days = defaultdict(lambda: {"auto": [], "pack": []})
+    for j in jobs:
+        d = str(j.get("found_at") or "")[:10] or "unknown"
+        lane = j.get("lane")
+        if lane == "auto_apply":
+            days[d]["auto"].append(j)
+        elif lane == "apply_pack":
+            days[d]["pack"].append(j)
+
+    ordered = []
+    for d in sorted(days.keys(), reverse=True):
+        dd = (d[8:10] + "/" + d[5:7]) if len(d) == 10 else d
+        ordered.append({"day": d, "day_short": dd,
+                        "auto": days[d]["auto"], "pack": days[d]["pack"]})
+
+    totals = {
+        "auto": sum(len(x["auto"]) for x in ordered),
+        "pack": sum(len(x["pack"]) for x in ordered),
+        "emails": len(outreach),
+        "emails_sent": sum(1 for o in outreach if o.get("sent_at")),
+    }
+    return render(request, "dashboard/activity.html",
+                  {"days": ordered, "outreach": outreach, "totals": totals})
+
+
 # ── Application Tracker ──────────────────────────────
 ROUND_STAGES = ["Applied", "Online Test", "Tech Round 1", "Tech Round 2", "HR Round", "Offer"]
 

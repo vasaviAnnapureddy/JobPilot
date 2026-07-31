@@ -1,0 +1,76 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Daily Activity{% endblock %}
+{% block body %}
+<h1>Daily Activity</h1>
+<p class="sub">Everything for each day in one place — auto-apply, apply-packs, and cold emails.</p>
+
+<div class="grid g4" style="margin-bottom:20px">
+  <div class="card stat"><div class="n" style="color:var(--green)">{{ totals.auto }}</div><div class="l">🤖 Auto-apply (ready)</div></div>
+  <div class="card stat"><div class="n" style="color:var(--blue)">{{ totals.pack }}</div><div class="l">📦 Apply-packs (you apply)</div></div>
+  <div class="card stat"><div class="n" style="color:var(--amber)">{{ totals.emails }}</div><div class="l">📧 Cold emails drafted</div></div>
+  <div class="card stat"><div class="n">{{ totals.emails_sent }}</div><div class="l">📧 Emails sent</div></div>
+</div>
+
+<div class="note" style="background:#fff8e6;border:1px solid #ffe1a6;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:18px">
+  ⚠️ "Auto-apply" jobs are <strong>prepared</strong> for you — the system does not submit them by itself (your approval rule). Click Apply, then mark them.
+</div>
+
+{% for d in days %}
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="color:var(--navy);margin-bottom:10px">📅 {{ d.day_short }}
+      <span class="muted" style="font-size:13px;font-weight:400">
+        · {{ d.auto|length }} auto · {{ d.pack|length }} packs</span></h3>
+
+    <div class="grid g2">
+      <!-- Auto-apply -->
+      <div>
+        <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">🤖 Auto-apply (ready to submit)</div>
+        {% for j in d.auto %}
+          <div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">
+            <strong style="font-size:13px">{{ j.title|truncatechars:40 }}</strong><br>
+            <span class="muted" style="font-size:12px">{{ j.company }}</span>
+            {% if j.apply_url %}<a href="{{ j.apply_url }}" target="_blank" class="pill b" style="margin-left:6px;text-decoration:none">Apply →</a>{% endif %}
+          </div>
+        {% empty %}<div class="muted" style="font-size:13px">None</div>{% endfor %}
+      </div>
+      <!-- Apply-packs -->
+      <div>
+        <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">📦 Apply-packs (you apply)</div>
+        {% for j in d.pack %}
+          <div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">
+            <strong style="font-size:13px">{{ j.title|truncatechars:40 }}</strong><br>
+            <span class="muted" style="font-size:12px">{{ j.company }}</span>
+            {% if j.apply_url %}<a href="{{ j.apply_url }}" target="_blank" class="pill b" style="margin-left:6px;text-decoration:none">Apply →</a>{% endif %}
+          </div>
+        {% empty %}<div class="muted" style="font-size:13px">None</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+{% empty %}
+  <div class="card muted" style="text-align:center;padding:24px">No activity yet. Press START and run the agent.</div>
+{% endfor %}
+
+<!-- Cold emails -->
+<h3 style="margin:22px 0 10px">📧 Cold emails — company, contact & status</h3>
+<table>
+  <thead><tr><th>Company</th><th>Contact</th><th>Subject</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for o in outreach %}
+    <tr>
+      <td><strong>{{ o.company }}</strong></td>
+      <td class="muted">{{ o.contact_role|default:'HR' }}</td>
+      <td class="muted">{{ o.email_subject|truncatechars:45 }}</td>
+      <td>
+        {% if o.sent_at %}<span class="pill a">✔ sent</span>
+        {% elif o.approved_by_me %}<span class="pill b">approved</span>
+        {% else %}<span class="pill warn">⏳ awaiting you</span>{% endif %}
+        {% if o.replied %}<span class="pill a">💬 replied</span>{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4" class="muted" style="text-align:center;padding:20px">No cold emails yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="muted" style="margin-top:10px">See full email text and approve them on the <a href="/outreach/">Outreach Book</a> page.</p>
+{% endblock %}

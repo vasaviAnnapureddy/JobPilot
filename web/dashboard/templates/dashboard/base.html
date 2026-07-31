@@ -10,6 +10,12 @@
       --red:#c0392b; --bg:#f4f6fb; --card:#fff; --ink:#1a1a2e; --muted:#6b7280;
       --line:#e4e8f0;
     }
+    html[data-theme="dark"]{
+      --navy:#8ea9ff; --blue:#5b93f0; --green:#3dc789; --amber:#e0a83c;
+      --bg:#12151f; --card:#1b1f2e; --ink:#e6eaf3; --muted:#9aa3b5; --line:#2a3040;
+    }
+    html[data-theme="dark"] th{background:#232838;color:#9aa3b5}
+    html[data-theme="dark"] .side{background:linear-gradient(180deg,#0f1320,#161b2b)}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);
          color:var(--ink);line-height:1.5}
@@ -72,6 +78,7 @@
     <nav class="nav">
       <a href="/" class="{% if page == 'home' %}active{% endif %}"><span class="ico">🎛️</span> Command Center</a>
       <a href="/jobs/" class="{% if page == 'jobs' %}active{% endif %}"><span class="ico">📋</span> Today's Jobs</a>
+      <a href="/activity/" class="{% if page == 'activity' %}active{% endif %}"><span class="ico">📅</span> Daily Activity</a>
       <a href="/tracker/" class="{% if page == 'tracker' %}active{% endif %}"><span class="ico">🏁</span> Application Tracker</a>
       <a href="/outreach/" class="{% if page == 'outreach' %}active{% endif %}"><span class="ico">📧</span> Outreach Book</a>
       <a href="/my-resume/" class="{% if page == 'my_resume' %}active{% endif %}"><span class="ico">📄</span> My Resume</a>
@@ -82,10 +89,23 @@
       <a href="/chat/" class="{% if page == 'chat' %}active{% endif %}"><span class="ico">💬</span> AI Interviewer (chat)</a>
       <a href="/live/" class="{% if page == 'live' %}active{% endif %}"><span class="ico">🎙️</span> Live Voice Interview</a>
     </nav>
+    <div style="padding:14px 22px;margin-top:10px">
+      <button id="themeBtn" style="background:rgba(255,255,255,.12);color:#fff;border:none;
+        padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;width:100%">🌙 Dark mode</button>
+    </div>
   </aside>
   <main class="main">
     {% block body %}{% endblock %}
   </main>
 </div>
+<script>
+  (function(){
+    const root=document.documentElement, btn=document.getElementById('themeBtn');
+    function apply(t){ root.setAttribute('data-theme',t); localStorage.setItem('jp_theme',t);
+      if(btn) btn.textContent = t==='dark' ? '☀️ Light mode' : '🌙 Dark mode'; }
+    apply(localStorage.getItem('jp_theme') || 'light');
+    if(btn) btn.onclick=()=>apply(root.getAttribute('data-theme')==='dark'?'light':'dark');
+  })();
+</script>
 </body>
 </html>
