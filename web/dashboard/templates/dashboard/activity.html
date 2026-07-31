@@ -16,11 +16,16 @@
 </div>
 
 {% for d in days %}
-  <div class="card" style="margin-bottom:16px">
-    <h3 style="color:var(--navy);margin-bottom:10px">📅 {{ d.day_short }}
-      <span class="muted" style="font-size:13px;font-weight:400">
-        · {{ d.auto|length }} auto · {{ d.pack|length }} packs</span></h3>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"
+         onclick="var b=this.parentNode.querySelector('.details');b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.vm').textContent=b.style.display==='none'?'View more ▾':'View less ▴';">
+      <h3 style="color:var(--navy);margin:0">📅 {{ d.day_short }}
+        <span class="muted" style="font-size:13px;font-weight:400">
+          · {{ d.auto|length }} auto-apply · {{ d.pack|length }} apply-packs</span></h3>
+      <span class="vm" style="color:var(--blue);font-size:13px;font-weight:600">View more ▾</span>
+    </div>
 
+    <div class="details" style="display:none;margin-top:12px">
     <div class="grid g2">
       <!-- Auto-apply -->
       <div>
@@ -44,6 +49,7 @@
           </div>
         {% empty %}<div class="muted" style="font-size:13px">None</div>{% endfor %}
       </div>
+    </div>
     </div>
   </div>
 {% empty %}
