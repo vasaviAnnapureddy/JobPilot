@@ -3,118 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JobPilot — Live Jobs</title>
+<title>JobPilot — AI Job-Search & Interview System</title>
 <style>
   :root{--navy:#1a237e;--blue:#4a86e8;--green:#1a764d;--amber:#b7791f;--red:#c0392b;
         --bg:#f4f6fb;--card:#fff;--ink:#1a1a2e;--muted:#6b7280;--line:#e4e8f0;}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
-  .top{background:linear-gradient(135deg,#1a237e,#4a86e8);color:#fff;padding:26px 20px}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+  a{color:var(--blue);text-decoration:none}
   .wrap{max-width:1050px;margin:0 auto;padding:0 18px}
-  h1{font-size:24px} .sub{color:#c5d8ff;font-size:14px;margin-top:4px}
-  .main{max-width:1050px;margin:22px auto;padding:0 18px}
-  .filters{margin:14px 0}
-  .filters a{display:inline-block;padding:6px 14px;border-radius:20px;background:#eef1f7;font-size:13px;
-    margin:0 6px 6px 0;font-weight:600;cursor:pointer;color:var(--ink);text-decoration:none}
-  .filters a.active{background:var(--navy);color:#fff}
-  .job{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--green);
-    border-radius:10px;padding:14px 16px;margin:10px 0}
-  .job .row{display:flex;justify-content:space-between;gap:10px}
+  .top{background:linear-gradient(135deg,#1a237e,#4a86e8);color:#fff;padding:44px 20px}
+  .top h1{font-size:30px} .top .sub{color:#c5d8ff;font-size:15px;margin-top:8px;max-width:680px}
+  .top .cta{margin-top:16px}
+  .btn{display:inline-block;padding:9px 16px;border-radius:8px;font-weight:600;font-size:14px;margin:4px 6px 0 0}
+  .btn.w{background:#fff;color:var(--navy)} .btn.o{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
+  section{padding:30px 0}
+  h2{font-size:22px;color:var(--navy);margin-bottom:6px}
+  .lead{color:var(--muted);margin-bottom:16px}
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:760px){.g3,.g2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h3{font-size:15px;color:var(--navy)} .card p{font-size:13px;color:var(--muted);margin-top:4px}
   .pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700}
-  .a{background:#e6f4ec;color:var(--green)} .b{background:#e8f0fe;color:var(--blue)}
-  .src{background:#eef0f4;color:#555}
+  .a{background:#e6f4ec;color:var(--green)} .b{background:#e8f0fe;color:var(--blue)} .src{background:#eef0f4;color:#555}
+  .job{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--green);border-radius:10px;padding:13px 15px;margin:9px 0}
+  .job .row{display:flex;justify-content:space-between;gap:10px}
   .muted{color:var(--muted);font-size:13px}
-  .btn{display:inline-block;margin-top:8px;background:var(--blue);color:#fff;padding:7px 15px;
-    border-radius:6px;text-decoration:none;font-size:13px;font-weight:600}
-  .load{text-align:center;color:var(--muted);padding:40px}
-  .foot{text-align:center;color:var(--muted);font-size:12px;margin:30px 0}
+  .filters a{display:inline-block;padding:6px 13px;border-radius:20px;background:#eef1f7;font-size:13px;margin:0 6px 6px 0;font-weight:600;cursor:pointer;color:var(--ink)}
+  .filters a.active{background:var(--navy);color:#fff}
+  .note{background:#fff8e6;border:1px solid #ffe1a6;border-radius:10px;padding:14px 16px;font-size:14px}
+  .foot{background:#101426;color:#aeb7d0;padding:26px 20px;font-size:13px;margin-top:20px}
+  .load{text-align:center;color:var(--muted);padding:30px}
 </style>
 </head>
 <body>
-  <div class="top"><div class="wrap">
-    <h1>🚀 JobPilot — Live Jobs</h1>
-    <div class="sub">AI-graded job matches, updated automatically. Built by Vasavi Annapureddy.</div>
-  </div></div>
 
-  <div class="main">
-    <div class="filters" id="gradeF">
-      <a data-grade="A" class="active">⭐ Grade A</a>
-      <a data-grade="B">👍 Grade B</a>
-    </div>
-    <div class="filters" id="profF"></div>
-    <div id="list"><div class="load">Loading your jobs…</div></div>
-    <div class="foot">
-      Data read live from Supabase · The AI grading runs in the background (GitHub Actions).<br>
-      Repo: <a href="https://github.com/vasaviAnnapureddy/JobPilot">github.com/vasaviAnnapureddy/JobPilot</a>
-    </div>
+<div class="top"><div class="wrap">
+  <h1>🚀 JobPilot</h1>
+  <div class="sub">An autonomous multi-agent AI system that searches jobs, grades them against my resume with RAG,
+    writes recruiter outreach, and coaches me for interviews — with me approving every important action.</div>
+  <div class="cta">
+    <a class="btn w" href="https://github.com/vasaviAnnapureddy/JobPilot">View the code on GitHub →</a>
+    <a class="btn o" href="https://github.com/vasaviAnnapureddy/JobPilot/tree/main/agents">See the 11 AI agents</a>
   </div>
+</div></div>
+
+<div class="wrap">
+
+  <!-- LIVE JOBS -->
+  <section>
+    <h2>Live: AI-graded jobs</h2>
+    <div class="lead">Found and graded automatically against my resume. Updated by the backend (GitHub Actions).</div>
+    <div class="filters" id="gradeF"><a data-grade="A" class="active">⭐ Grade A</a><a data-grade="B">👍 Grade B</a></div>
+    <div id="list"><div class="load">Loading jobs…</div></div>
+  </section>
+
+  <!-- AGENTS -->
+  <section>
+    <h2>The 11 AI agents</h2>
+    <div class="lead">A team coordinated by a LangGraph supervisor. Each has one job.</div>
+    <div class="grid g3">
+      <div class="card"><h3>🧭 Boss</h3><p>LangGraph supervisor. Checks my START/STOP switch, runs the team.</p></div>
+      <div class="card"><h3>🔍 Scout</h3><p>Searches LinkedIn, Indeed, Internshala. Stores new jobs.</p></div>
+      <div class="card"><h3>⚖️ Judge</h3><p>Grades each job A–F using RAG evidence from my resume; flags scams.</p></div>
+      <div class="card"><h3>✂️ Tailor</h3><p>ATS-scores jobs, suggests resume edits — for my approval.</p></div>
+      <div class="card"><h3>📮 Applier</h3><p>Routes Grade-A jobs into apply / outreach lanes.</p></div>
+      <div class="card"><h3>📧 Outreach</h3><p>Drafts personalized HR emails from my real experience.</p></div>
+      <div class="card"><h3>📊 Tracker</h3><p>Reads Gmail to catch interview invites & rejections.</p></div>
+      <div class="card"><h3>🎤 Interview-Prep</h3><p>Company briefs, mock Qs, feedback, concept coach.</p></div>
+      <div class="card"><h3>🤝 Referral Finder</h3><p>Drafts referral messages + the LinkedIn search.</p></div>
+      <div class="card"><h3>🧠 Coding Coach</h3><p>Tracks LeetCode, names what to solve next by level.</p></div>
+      <div class="card"><h3>✉️ Notifier</h3><p>Emails me the best jobs each day.</p></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section>
+    <h2>Inside the full app (13 pages)</h2>
+    <div class="lead">The interactive dashboard runs locally (needs secret keys, so it can't live on a public page).</div>
+    <div class="grid g2">
+      <div class="card"><h3>🎛️ Command Center + Today's Jobs</h3><p>One START/STOP switch; jobs ranked, by date, source, resume type.</p></div>
+      <div class="card"><h3>💬 AI Interviewer + 🎙️ Live Voice Interview</h3><p>Chat or a Zoom-like voice interview that talks back.</p></div>
+      <div class="card"><h3>🎥 Video Mock Interview</h3><p>Camera + speech-to-text + AI feedback on answers.</p></div>
+      <div class="card"><h3>📈 Grow & Practice</h3><p>LeetCode coach with streaks + company-specific plans.</p></div>
+      <div class="card"><h3>📄 My Resumes</h3><p>Upload unlimited named resumes; each matches its own jobs.</p></div>
+      <div class="card"><h3>🏁 Tracker + 📧 Outreach Book</h3><p>Round-by-round tracking; approve HR emails before sending.</p></div>
+    </div>
+    <div class="note" style="margin-top:16px">
+      <strong>Run the full interactive app:</strong> clone the repo, then
+      double-click <code>START_WEBSITE.bat</code> (or <code>cd web &amp;&amp; python manage.py runserver</code>) and open
+      <code>localhost:8010</code>. Built with Python · LangGraph · Supabase/pgvector (RAG) · Gemini + Groq · Django.
+    </div>
+  </section>
+
+</div>
+
+<div class="foot"><div class="wrap">
+  Built by Vasavi Annapureddy · B.Tech CSE (AI &amp; ML) ·
+  <a href="https://github.com/vasaviAnnapureddy/JobPilot" style="color:#8fb4ff">github.com/vasaviAnnapureddy/JobPilot</a><br>
+  <span id="upd" class="muted" style="color:#7b83a0"></span>
+</div></div>
 
 <script>
-// Reads a plain data file in this repo — no database, no keys, no setup.
-// Refresh it any time by running:  python export_public.py  (then commit)
-let ALL = [];               // all jobs from jobs.json
-let grade = "A", profile = "";
-let allProfiles = new Set();
-
+let ALL=[], grade="A";
 async function loadData(){
-  const list = document.getElementById('list');
   try{
-    const r = await fetch('./jobs.json?t=' + Date.now());
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    ALL = data.jobs || [];
-    ALL.forEach(j=>{ if(j.profile) allProfiles.add(j.profile); });
-    fetchJobs();
-  }catch(e){
-    list.innerHTML = `<div class="load">Could not load jobs.json (${e.message}).<br>
-      Run <code>python export_public.py</code> and commit, then open the GitHub Pages link.</div>`;
-  }
+    const r=await fetch('./jobs.json?t='+Date.now());
+    const d=await r.json(); ALL=d.jobs||[];
+    document.getElementById('upd').textContent='Jobs updated: '+(d.updated||'');
+    render();
+  }catch(e){ document.getElementById('list').innerHTML='<div class="load">Jobs will appear once the backend runs.</div>'; }
 }
-
-function fetchJobs(){
-  renderProfiles();
-  let jobs = ALL.filter(j=>j.grade===grade);
-  if(profile) jobs = jobs.filter(j=>(j.profile||"")===profile);
-  render(jobs);
-}
-
-function renderProfiles(){
-  const f = document.getElementById('profF');
-  if(allProfiles.size===0){ f.innerHTML=''; return; }
-  let html = `<a data-prof="" class="${profile===''?'active':''}">All resumes</a>`;
-  allProfiles.forEach(p=>{ html += `<a data-prof="${p}" class="${profile===p?'active':''}">${p}</a>`; });
-  f.innerHTML = html;
-  f.querySelectorAll('a').forEach(a=>a.onclick=()=>{ profile=a.dataset.prof; fetchJobs(); });
-}
-
-function render(jobs){
-  const list = document.getElementById('list');
-  if(!jobs.length){ list.innerHTML='<div class="load">No jobs here yet.</div>'; return; }
-  list.innerHTML = jobs.map(j=>{
-    const d=(j.found_at||"").slice(0,10); const dd=d?d.slice(8,10)+"/"+d.slice(5,7):"";
-    return `<div class="job">
-      <div class="row">
-        <div><strong>${j.title||""}</strong><br>
-          <span class="muted">${j.company||""} · ${j.location||""}</span></div>
-        <div style="text-align:right;white-space:nowrap">
-          <span class="pill ${j.grade==='A'?'a':'b'}">${j.score}/100</span><br>
-          <span class="muted" style="font-size:11px">${dd}</span></div>
+function render(){
+  const jobs=ALL.filter(j=>j.grade===grade);
+  const list=document.getElementById('list');
+  if(!jobs.length){ list.innerHTML='<div class="load">No jobs in this grade yet.</div>'; return; }
+  list.innerHTML=jobs.slice(0,40).map(j=>{
+    const d=(j.found_at||'').slice(0,10), dd=d?d.slice(8,10)+'/'+d.slice(5,7):'';
+    return `<div class="job"><div class="row">
+      <div><strong>${j.title||''}</strong><br><span class="muted">${j.company||''} · ${j.location||''}</span></div>
+      <div style="text-align:right;white-space:nowrap"><span class="pill ${j.grade==='A'?'a':'b'}">${j.score}/100</span><br><span class="muted" style="font-size:11px">${dd}</span></div>
       </div>
-      <div style="margin-top:6px">
-        <span class="pill src">${j.portal||""}</span>
-        ${j.profile?`<span class="pill src">${j.profile}</span>`:""}
-      </div>
-      <div class="muted" style="margin-top:6px">${(j.match_reason||"").slice(0,160)}</div>
-      ${j.apply_url?`<a class="btn" href="${j.apply_url}" target="_blank">Apply →</a>`:""}
-    </div>`;
-  }).join('');
+      <div style="margin-top:6px"><span class="pill src">${j.portal||''}</span></div>
+      <div class="muted" style="margin-top:6px">${(j.match_reason||'').slice(0,150)}</div>
+      ${j.apply_url?`<a class="btn b" style="background:#4a86e8;color:#fff;margin-top:8px" href="${j.apply_url}" target="_blank">Apply →</a>`:''}
+    </div>`;}).join('');
 }
-
-document.getElementById('gradeF').querySelectorAll('a').forEach(a=>a.onclick=()=>{
+document.querySelectorAll('#gradeF a').forEach(a=>a.onclick=()=>{
   document.querySelectorAll('#gradeF a').forEach(x=>x.classList.remove('active'));
-  a.classList.add('active'); grade=a.dataset.grade; fetchJobs();
+  a.classList.add('active'); grade=a.dataset.grade; render();
 });
-
 loadData();
 </script>
 </body>
