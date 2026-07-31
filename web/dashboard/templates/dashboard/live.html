@@ -1,0 +1,122 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Live Voice Interview{% endblock %}
+{% block body %}
+<h1>Live Voice Interview</h1>
+<p class="sub">Like a Zoom call — you speak, the AI listens and talks back. Turn on your camera and just talk.</p>
+
+{% csrf_token %}
+
+<div class="grid g2" style="align-items:stretch">
+  <!-- AI interviewer -->
+  <div class="card" style="text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:300px">
+    <div id="aiFace" style="width:120px;height:120px;border-radius:50%;margin:0 auto;
+      background:linear-gradient(135deg,#4a86e8,#1a237e);display:flex;align-items:center;
+      justify-content:center;font-size:52px;transition:transform .2s">🤖</div>
+    <div style="margin-top:14px;font-weight:700;color:var(--navy)">AI Interviewer</div>
+    <div id="aiState" class="muted" style="font-size:13px;margin-top:2px">Click Start to begin</div>
+  </div>
+  <!-- You -->
+  <div class="card" style="padding:0;overflow:hidden;min-height:300px;display:flex;flex-direction:column">
+    <video id="cam" autoplay muted playsinline style="width:100%;flex:1;object-fit:cover;background:#111"></video>
+    <div class="muted" style="padding:8px 12px;text-align:center;font-size:13px">You</div>
+  </div>
+</div>
+
+<div class="row-flex" style="margin:16px 0;justify-content:center">
+  <button id="startBtn" class="btn green big">▶ Start interview</button>
+  <button id="stopBtn" class="btn red" disabled>■ End</button>
+  <button id="repeatBtn" class="btn ghost" disabled>🔁 Repeat question</button>
+</div>
+
+<!-- Live captions -->
+<div class="card">
+  <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Conversation</div>
+  <div id="captions" style="max-height:34vh;overflow-y:auto;font-size:14px;line-height:1.6"></div>
+</div>
+
+<p class="muted" style="margin-top:12px">
+  💡 Best in Google Chrome. Everything runs in your browser — your voice is turned to text here and only the text is sent for the AI's reply. Speak clearly, then pause; the AI answers out loud.
+</p>
+
+<script>
+const role = "{{ role|escapejs }}";
+const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+const el = id => document.getElementById(id);
+let messages = [], running = false, lastAI = "";
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+if(SR){ rec = new SR(); rec.lang='en-IN'; rec.interimResults=true; rec.continuous=false; }
+
+function addCaption(who, text){
+  const d=document.createElement('div');
+  d.style.margin='6px 0';
+  d.innerHTML = `<strong style="color:${who==='AI'?'#4a86e8':'#1a764d'}">${who}:</strong> ${text}`;
+  el('captions').appendChild(d); el('captions').scrollTop = el('captions').scrollHeight;
+  return d;
+}
+
+// AI speaks out loud, then calls onDone
+function speak(text, onDone){
+  el('aiState').textContent = 'Speaking…';
+  el('aiFace').style.transform='scale(1.08)';
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-US'; u.rate=1.0; u.pitch=1.0;
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(x=>/female|zira|samantha|google us/i.test(x.name)) || voices[0];
+  if(v) u.voice=v;
+  u.onend = ()=>{ el('aiFace').style.transform='scale(1)'; if(onDone) onDone(); };
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+// get the AI's next line from the server
+async function aiTurn(){
+  el('aiState').textContent = 'Thinking…';
+  try{
+    const r = await fetch('/chat/send/', {method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body: JSON.stringify({messages, role})});
+    const d = await r.json();
+    lastAI = d.reply;
+    messages.push({role:'assistant', content:d.reply});
+    addCaption('AI', d.reply);
+    speak(d.reply, ()=>{ if(running) listen(); });
+  }catch(e){ el('aiState').textContent='Error — click Repeat.'; }
+}
+
+// listen to the candidate
+function listen(){
+  if(!rec){ el('aiState').textContent='Voice not supported — use Chrome.'; return; }
+  el('aiState').textContent = '🎧 Listening… (speak, then pause)';
+  let finalText='';
+  rec.onresult = ev=>{
+    finalText='';
+    for(let i=0;i<ev.results.length;i++) finalText += ev.results[i][0].transcript;
+  };
+  rec.onend = ()=>{
+    if(!running) return;
+    const said = finalText.trim();
+    if(said){ addCaption('You', said); messages.push({role:'user', content:said}); aiTurn(); }
+    else { listen(); }  // heard nothing, listen again
+  };
+  try{ rec.start(); }catch(e){ setTimeout(listen, 500); }
+}
+
+el('startBtn').onclick = async ()=>{
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    el('cam').srcObject = stream;
+  }catch(e){ el('aiState').textContent='Allow camera & mic to start.'; return; }
+  running = true; messages=[]; el('captions').innerHTML='';
+  el('startBtn').disabled=true; el('stopBtn').disabled=false; el('repeatBtn').disabled=false;
+  speechSynthesis.getVoices();     // warm up voices
+  aiTurn();                        // AI greets + asks first question, then listens
+};
+el('stopBtn').onclick = ()=>{
+  running=false; if(rec) rec.abort(); speechSynthesis.cancel();
+  el('aiState').textContent='Interview ended. Press Start to go again.';
+  el('startBtn').disabled=false; el('stopBtn').disabled=true; el('repeatBtn').disabled=true;
+};
+el('repeatBtn').onclick = ()=>{ if(lastAI) speak(lastAI, ()=>{ if(running) listen(); }); };
+</script>
+{% endblock %}

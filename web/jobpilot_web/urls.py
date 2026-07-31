@@ -18,4 +18,5 @@ urlpatterns = [
     path("mock/feedback/", views.mock_feedback, name="mock_feedback"),
     path("chat/", views.chat_page, name="chat"),
     path("chat/send/", views.chat_send, name="chat_send"),
+    path("live/", views.live_page, name="live"),
 ]

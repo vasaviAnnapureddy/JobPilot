@@ -33,11 +33,11 @@ HER LEETCODE PROGRESS: {prof}
 Is she a beginner? {"YES - very few solved, keep it Easy." if beginner else "No, she has some practice."}
 
 Reply in simple English, short bullet points (10th-grade level):
-1. WHERE YOU STAND — one honest line.
-2. FOCUS NEXT — 3 problem TOPICS to work on now (right for her level; if beginner, Easy arrays/strings/hashing first). For each topic say why.
-3. TOMORROW'S TARGET — exactly how many problems and which ONE topic to do tomorrow.
-4. ONE TIP — a habit to improve.
-Do NOT paste problem lists. Guide the path. Be encouraging."""
+1. WHERE YOU STAND - one honest line.
+2. FOCUS NEXT - 2 topics to work on now (right for her level; if beginner, Easy arrays/strings/hashing). Say why briefly.
+3. SOLVE TOMORROW - name 3 SPECIFIC real LeetCode problems by their exact names (Easy if she is a beginner), each with its difficulty. Use well-known problems she can search on leetcode.com.
+4. ONE TIP - a habit to improve.
+Be encouraging."""
     ans = llm.ask(prompt, log_fn=lambda m: db.log("coding", m, "WARN"))
     return ans
 
@@ -52,8 +52,8 @@ HER LEETCODE PROGRESS: {prof}
 Reply in simple English, short bullet points:
 1. WHAT {company} FOCUSES ON — the coding topics and difficulty they usually ask freshers (if unsure, say "commonly" and give the typical fresher pattern; do not invent exact questions).
 2. YOUR GAP — comparing her progress to what they want, what to practice more.
-3. A 1-WEEK PLAN — day by day, which topic + how many problems, matched to her level.
-4. BEYOND CODING — 1 line on what else matters for {company} (projects, communication).
-Keep it realistic and honest. If you are unsure about the company's exact style, say so."""
+3. A 1-WEEK PLAN - day by day, which topic + name 1-2 SPECIFIC real LeetCode problems by name each day (matched to her level).
+4. BEYOND CODING - 1 line on what else matters for {company} (projects, communication).
+Use real, well-known LeetCode problem names. Keep it realistic and honest. If unsure about the company's exact style, say so."""
     ans = llm.ask(prompt, log_fn=lambda m: db.log("coding", m, "WARN"))
     return ans

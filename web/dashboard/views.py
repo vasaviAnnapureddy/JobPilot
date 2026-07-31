@@ -375,6 +375,11 @@ def chat_page(request):
     return render(request, "dashboard/chat.html", {"role": role})
 
 
+def live_page(request):
+    role = request.GET.get("role", "AI/ML Engineer")
+    return render(request, "dashboard/live.html", {"role": role})
+
+
 @require_POST
 def chat_send(request):
     """Receives the conversation so far, returns the interviewer's next message."""
