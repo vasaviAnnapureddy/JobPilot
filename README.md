@@ -5,7 +5,6 @@
 **Built with:** Python · LangGraph (multi-agent orchestration) · Supabase/PostgreSQL + pgvector (RAG) · Gemini + Groq (LLM fallback chain) · Django (web dashboard) · GitHub Actions (cloud scheduling)
 
 ### 🔗 Links
-- **🌐 Live demo (jobs dashboard):** https://vasaviannapureddy.github.io/JobPilot/
 - **📂 Project (this repo):** https://github.com/vasaviAnnapureddy/JobPilot
 - **🖥️ Run the dashboard locally** (two ways):
   - **Easiest:** double-click **`START_WEBSITE.bat`** in the project folder, then open http://localhost:8010 in Chrome.
