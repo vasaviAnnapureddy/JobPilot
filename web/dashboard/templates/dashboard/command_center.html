@@ -32,6 +32,35 @@
   <div class="card stat"><div class="n" style="color:var(--blue)">{{ pending_drafts }}</div><div class="l">Outreach drafts to approve</div></div>
 </div>
 
+<!-- Charts -->
+<div class="grid g2" style="margin-bottom:22px">
+  <div class="card">
+    <h3 style="margin-bottom:12px">📊 Jobs by grade</h3>
+    {% for b in charts.grade_bars %}
+      <div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+        <span style="width:70px;font-size:13px;color:var(--muted)">{{ b.label }}</span>
+        <div style="flex:1;background:#eef1f7;border-radius:6px;height:20px;overflow:hidden">
+          <div style="width:{{ b.pct }}%;height:100%;background:var(--blue);border-radius:6px"></div>
+        </div>
+        <span style="width:40px;text-align:right;font-weight:700">{{ b.n }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px">📈 Application funnel</h3>
+    {% for b in charts.app_bars %}
+      <div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+        <span style="width:80px;font-size:13px;color:var(--muted)">{{ b.label }}</span>
+        <div style="flex:1;background:#eef1f7;border-radius:6px;height:20px;overflow:hidden">
+          <div style="width:{{ b.pct }}%;height:100%;background:var(--green);border-radius:6px"></div>
+        </div>
+        <span style="width:40px;text-align:right;font-weight:700">{{ b.n }}</span>
+      </div>
+    {% endfor %}
+    <p class="muted" style="margin-top:8px;font-size:12px">Mark jobs "Applied" to grow this.</p>
+  </div>
+</div>
+
 <div class="grid g2">
   <div class="card">
     <h3 style="margin-bottom:10px">Last run</h3>

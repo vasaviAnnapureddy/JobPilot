@@ -2,7 +2,16 @@
 {% block title %}Today's Jobs{% endblock %}
 {% block body %}
 <h1>Today's Jobs</h1>
-<p class="sub">{{ count }} jobs shown — ranked by how well they match you.</p>
+<p class="sub">{{ count }} jobs shown — ranked by how well they match you. (Only your target cities + remote.)</p>
+
+<form method="get" style="margin-bottom:14px">
+  <input type="hidden" name="grade" value="{{ grade }}">
+  <div class="row-flex">
+    <input type="text" name="q" value="{{ q }}" placeholder="🔎 Search by role, company, or city…" style="flex:1">
+    <button class="btn primary">Search</button>
+    {% if q %}<a href="/jobs/?grade={{ grade }}" class="btn ghost">Clear</a>{% endif %}
+  </div>
+</form>
 
 {% if profile_tabs %}
 <div class="card" style="margin-bottom:16px;padding:12px 16px;border-left:4px solid var(--blue)">

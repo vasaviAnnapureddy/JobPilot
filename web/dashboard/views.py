@@ -39,7 +39,26 @@ def command_center(request):
         "quota_pack":    db.get_state("quota_apply_packs", "10"),
         "quota_out":     db.get_state("quota_outreach", "10"),
     }
+    ctx["charts"] = _chart_data()
     return render(request, "dashboard/command_center.html", ctx)
+
+
+def _chart_data():
+    """Simple counts for the home charts (grade mix, application funnel)."""
+    grades = {}
+    for g in ["A", "B", "C", "D", "F"]:
+        grades[g] = _count("jobs", grade=g)
+    max_g = max(grades.values()) or 1
+    grade_bars = [{"label": f"Grade {g}", "n": n, "pct": int(100 * n / max_g)}
+                  for g, n in grades.items()]
+
+    statuses = ["applied", "interview", "offer", "rejected"]
+    apps = {s: _count("applications", status=s) for s in statuses}
+    max_a = max(apps.values()) or 1
+    app_bars = [{"label": s.title(), "n": n, "pct": int(100 * n / max_a)}
+                for s, n in apps.items()]
+
+    return {"grade_bars": grade_bars, "app_bars": app_bars}
 
 
 def _pending_edits():
@@ -98,6 +117,15 @@ def jobs(request):
         if profile:
             rows = [r for r in rows if (r.get("profile") or "ai_ml") == profile]
 
+    # keep only target-city / remote jobs
+    rows = [r for r in rows if config.location_ok(r.get("location"))]
+
+    # keyword search (title / company / location)
+    query = request.GET.get("q", "").strip().lower()
+    if query:
+        rows = [r for r in rows if query in
+                f"{r.get('title','')} {r.get('company','')} {r.get('location','')}".lower()]
+
     # add a short date (DD/MM) + remote flag to each row
     for r in rows:
         fa = str(r.get("found_at") or "")[:10]        # YYYY-MM-DD
@@ -119,16 +147,56 @@ def jobs(request):
     return render(request, "dashboard/jobs.html",
                   {"jobs": rows, "grade": grade, "lane": lane, "day": day,
                    "count": len(rows), "date_summary": date_summary,
-                   "profile_tabs": profile_tabs, "profile": profile})
+                   "profile_tabs": profile_tabs, "profile": profile, "q": query})
+
+
+# ── Skill Gap (what to learn, from your jobs) ────────
+SKILL_LIST = ["aws", "azure", "gcp", "docker", "kubernetes", "fastapi", "flask", "django",
+              "spark", "hadoop", "airflow", "kafka", "mlflow", "sagemaker", "pytorch",
+              "tensorflow", "sql", "power bi", "tableau", "excel", "statistics", "nlp",
+              "langchain", "rag", "pinecone", "hugging face", "opencv", "git", "ci/cd",
+              "rest api", "microservices", "pandas", "numpy", "scikit-learn", "xgboost",
+              "deep learning", "computer vision", "data engineering", "etl", "snowflake"]
+
+
+def skill_gap_page(request):
+    from core import config
+    c = _client()
+    jobs = (c.table("jobs").select("description,missing_skills,grade,location")
+            .in_("grade", ["A", "B"]).limit(400).execute().data or [])
+    jobs = [j for j in jobs if config.location_ok(j.get("location"))]
+
+    # my skills (from resume files)
+    have = ""
+    for f in config.RESUMES_DIR.glob("cv_*.md"):
+        try:
+            have += " " + f.read_text(encoding="utf-8").lower()
+        except Exception:
+            pass
+
+    counts = {}
+    for j in jobs:
+        text = f"{j.get('description','')} {j.get('missing_skills','')}".lower()
+        for s in SKILL_LIST:
+            if s in text:
+                counts[s] = counts.get(s, 0) + 1
+
+    gaps = [{"skill": s, "count": n, "have": (s in have)}
+            for s, n in sorted(counts.items(), key=lambda x: -x[1])]
+    to_learn = [g for g in gaps if not g["have"]][:12]
+    return render(request, "dashboard/skillgap.html",
+                  {"gaps": gaps[:25], "to_learn": to_learn, "total": len(jobs)})
 
 
 # ── Daily Activity (what happened each day, 3 lanes) ──
 def activity_page(request):
     from collections import defaultdict
+    from core import config
     c = _client()
     jobs = (c.table("jobs")
-            .select("id,title,company,lane,found_at,apply_url,profile")
+            .select("id,title,company,lane,found_at,apply_url,profile,location")
             .eq("grade", "A").limit(300).execute().data or [])
+    jobs = [j for j in jobs if config.location_ok(j.get("location"))]   # target cities only
     try:
         outreach = (c.table("outreach")
                     .select("id,company,contact_role,email_subject,approved_by_me,replied,sent_at")

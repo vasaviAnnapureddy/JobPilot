@@ -1,0 +1,34 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Skill Gap{% endblock %}
+{% block body %}
+<h1>Skill Gap — what to learn</h1>
+<p class="sub">From {{ total }} of your Grade A/B jobs. Ranked by how often each skill is asked.</p>
+
+{% if to_learn %}
+<div class="card" style="border-left:4px solid var(--amber);margin-bottom:18px">
+  <h3 style="color:var(--navy);margin-bottom:8px">🎯 Learn these first (you don't have them yet)</h3>
+  <div class="row-flex">
+    {% for g in to_learn %}
+      <span class="pill warn" style="font-size:13px">{{ g.skill }} · {{ g.count }} jobs</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<h3 style="margin:6px 0 10px">All skills in your target jobs</h3>
+<table>
+  <thead><tr><th>Skill</th><th>Appears in</th><th>Bar</th><th>You have it?</th></tr></thead>
+  <tbody>
+  {% for g in gaps %}
+    <tr>
+      <td><strong>{{ g.skill }}</strong></td>
+      <td>{{ g.count }} jobs</td>
+      <td><div style="height:10px;border-radius:5px;background:var(--blue);width:{{ g.count|add:g.count }}px;max-width:260px"></div></td>
+      <td>{% if g.have %}<span class="pill a">✔ yes</span>{% else %}<span class="pill warn">learn</span>{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Run the agent to gather jobs, then your skill gaps appear here.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

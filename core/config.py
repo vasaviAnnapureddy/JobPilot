@@ -37,6 +37,19 @@ GROQ_MODEL    = "llama-3.3-70b-versatile"
 # ── Batching (the fix for quota crashes) ─────────────
 JUDGE_BATCH_SIZE = 12          # jobs graded per single AI call
 
+# ── Location filter — only these cities (+ remote) ───
+TARGET_CITIES = ["hyderabad", "pune", "chennai", "bangalore", "bengaluru",
+                 "noida", "delhi", "gurgaon", "gurugram", "new delhi"]
+REMOTE_WORDS = ["remote", "work from home", "wfh", "anywhere", "hybrid"]
+
+
+def location_ok(loc):
+    """True if the job is in a target city OR remote. Blank = allow (unknown)."""
+    l = (loc or "").strip().lower()
+    if not l:
+        return True
+    return any(c in l for c in TARGET_CITIES) or any(w in l for w in REMOTE_WORDS)
+
 # ── Resume profiles ──────────────────────────────────
 # Each profile = a resume version + the job searches it should trigger.
 # Upload a resume and pick a profile → Scout searches THOSE jobs and the

@@ -97,12 +97,18 @@ def run():
         db.log("scout", "No jobs found from any portal!", "ERROR")
         return 0
 
-    clean = []
+    clean, skipped_loc = [], 0
     for r in all_rows:
         c = _standardise(r)
         c["profile"] = r.get("_profile", config.DEFAULT_PROFILE)
-        if c["title"] and c["company"]:
-            clean.append(c)
+        if not (c["title"] and c["company"]):
+            continue
+        if not config.location_ok(c.get("location")):   # only target cities + remote
+            skipped_loc += 1
+            continue
+        clean.append(c)
+    if skipped_loc:
+        db.log("scout", f"Skipped {skipped_loc} jobs outside target cities")
     new_count = db.insert_jobs(clean)
 
     db.log("scout", f"Done — {len(clean)} jobs found, {new_count} are NEW")
